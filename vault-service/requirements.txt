@@ -1,0 +1,10 @@
+fastapi
+uvicorn
+cryptography
+sqlalchemy
+psycopg2-binary
+pydantic
+pydantic-settings
+python-jose
+redis
+slowapi
