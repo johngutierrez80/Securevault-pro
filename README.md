@@ -84,7 +84,7 @@ secure-vault/
 ## Documentación de Entrega
 
 - [Manual de Usuario](docs/01_Manual_Usuario.md)
-- [Manual Técnico](docs/02_Manual_Tecnico.md) (incluye diagrama de casos de uso)
+- [Manual Técnico](docs/02_Manual_Tecnico.md) 
 - [Manual de Operación y DevOps](docs/03_Manual_Operacion_DevOps.md)
 - [Seguridad y Riesgos](docs/04_Seguridad_y_Riesgos.md)
 - [Plan de Pruebas](docs/05_Plan_Pruebas.md)
