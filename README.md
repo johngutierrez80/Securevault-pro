@@ -115,6 +115,7 @@ El repositorio ahora incluye un pipeline completo en GitHub Actions:
 - DAST automatizado con ZAP en `.github/workflows/dast-zap.yml`.
 - IaC con Ansible en `iac/ansible/deploy-compose.yml`.
 
+<<<<<<< HEAD
 ### Flujo recomendado
 - Pull Request a `main`: ejecuta calidad, build y escaneos de seguridad.
 - Push a `main`: construye y publica imágenes en GHCR y Docker Hub.
@@ -175,3 +176,11 @@ pre-commit install
 
 ### Cobertura de pruebas en CI
 - El workflow de CI ejecuta `pytest --cov=app --cov-report=term-missing --cov-report=xml` en `auth-service` y `vault-service`.
+=======
+- [Manual de Usuario](docs/01_Manual_Usuario.md)
+- [Manual Técnico](docs/02_Manual_Tecnico.md) 
+- [Manual de Operación y DevOps](docs/03_Manual_Operacion_DevOps.md)
+- [Seguridad y Riesgos](docs/04_Seguridad_y_Riesgos.md)
+- [Plan de Pruebas](docs/05_Plan_Pruebas.md)
+- [Checklist de Entrega](docs/06_Checklist_Entrega.md)
+>>>>>>> 6137c81d058901460e15cc5d9cf3c939b7ccc2e7

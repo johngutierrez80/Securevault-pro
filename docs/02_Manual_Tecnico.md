@@ -58,6 +58,7 @@ Cobertura funcional y trazabilidad:
 - CRUD de secretos: alineado con CP-05 a CP-08 del plan de pruebas.
 - Control de acceso y límites: relacionado con CP-09 y CP-10.
 
+<<<<<<< HEAD
 ## 4. DFD Nivel 0 (Crítico)
 Este diagrama representa la vista de contexto del sistema, mostrando a SecureVault como una unidad frente al usuario y sus dependencias principales.
 
@@ -166,6 +167,9 @@ sequenceDiagram
 ```
 
 ## 9. Modelo de datos
+=======
+## 4. Modelo de datos
+>>>>>>> 6137c81d058901460e15cc5d9cf3c939b7ccc2e7
 ### Tabla users
 - id: integer, PK.
 - username: string, único.
@@ -177,14 +181,22 @@ sequenceDiagram
 - encrypted_password: string.
 - owner: string (usuario propietario).
 
+<<<<<<< HEAD
 ## 10. Seguridad implementada
+=======
+## 5. Seguridad implementada
+>>>>>>> 6137c81d058901460e15cc5d9cf3c939b7ccc2e7
 - Hash de contraseña: bcrypt mediante passlib.
 - JWT firmado con HS256 y expiración configurable.
 - Validación de token en endpoints de bóveda.
 - Cifrado de secretos con Fernet.
 - Rate limiting en vault: 10 requests/minute por IP.
 
+<<<<<<< HEAD
 ## 11. Endpoints principales
+=======
+## 6. Endpoints principales
+>>>>>>> 6137c81d058901460e15cc5d9cf3c939b7ccc2e7
 ### Auth Service
 - POST /auth/register
 - POST /auth/login
@@ -195,21 +207,33 @@ sequenceDiagram
 - PUT /vault/secret/{secret_id}
 - DELETE /vault/secret/{secret_id}
 
+<<<<<<< HEAD
 ## 12. Variables y configuración
+=======
+## 7. Variables y configuración
+>>>>>>> 6137c81d058901460e15cc5d9cf3c939b7ccc2e7
 - database_url: conexión PostgreSQL.
 - secret_key: clave de firma JWT.
 - algorithm: algoritmo JWT (HS256).
 - token_exp_minutes: expiración del token.
 - ENCRYPTION_KEY: clave de cifrado de secretos recomendada para persistencia.
 
+<<<<<<< HEAD
 ## 13. Notas técnicas relevantes
+=======
+## 8. Notas técnicas relevantes
+>>>>>>> 6137c81d058901460e15cc5d9cf3c939b7ccc2e7
 - Si ENCRYPTION_KEY no está definida, se genera una clave efímera y los secretos previos pueden no descifrarse tras reinicio.
 - Nginx enruta /auth/ a auth y /vault/ a vault.
 - El frontend consume rutas relativas /auth/* y /vault/*.
 - Se incluye un modelo DFD importable en OWASP Threat Dragon en `docs/07_SecureVault_Threat_Dragon.json`.
 - Se incluye un segundo modelo Threat Dragon para CI/CD y supply chain en `docs/08_SecureVault_CICD_Threat_Dragon.json`.
 
+<<<<<<< HEAD
 ## 14. Mejoras futuras sugeridas
+=======
+## 9. Mejoras futuras sugeridas
+>>>>>>> 6137c81d058901460e15cc5d9cf3c939b7ccc2e7
 - Migraciones formales con Alembic.
 - Gestión segura de secretos con vault manager o variables protegidas.
 - Observabilidad centralizada (logs estructurados, métricas, trazas).
