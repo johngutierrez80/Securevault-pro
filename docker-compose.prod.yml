@@ -1,0 +1,120 @@
+services:
+  auth:
+    image: ghcr.io/${GITHUB_REPOSITORY_OWNER}/securevault-auth:${IMAGE_TAG}
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  vault:
+    image: ghcr.io/${GITHUB_REPOSITORY_OWNER}/securevault-vault:${IMAGE_TAG}
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  postgres:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: vault
+      POSTGRES_PASSWORD: vault
+      POSTGRES_DB: vaultdb
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U vault -d vaultdb"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  gateway:
+    image: ghcr.io/${GITHUB_REPOSITORY_OWNER}/securevault-frontend:${IMAGE_TAG}
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+    depends_on:
+      - auth
+      - vault
+
+  prometheus:
+    image: prom/prometheus:v2.54.1
+    restart: unless-stopped
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:v0.49.1
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker:/var/lib/docker:ro
+
+  grafana:
+    image: grafana/grafana:11.1.4
+    restart: unless-stopped
+    ports:
+      - "3001:3000"
+    depends_on:
+      - prometheus
+      - loki
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+
+  loki:
+    image: grafana/loki:3.1.1
+    restart: unless-stopped
+    ports:
+      - "3100:3100"
+    volumes:
+      - ./monitoring/loki/config.yml:/etc/loki/config.yml:ro
+      - loki-data:/loki
+    command: -config.file=/etc/loki/config.yml
+
+  promtail:
+    image: grafana/promtail:3.1.1
+    restart: unless-stopped
+    depends_on:
+      - loki
+    volumes:
+      - ./monitoring/promtail/config.yml:/etc/promtail/config.yml:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    command: -config.file=/etc/promtail/config.yml
+
+  falco:
+    image: falcosecurity/falco:0.39.1
+    restart: unless-stopped
+    privileged: true
+    pid: host
+    volumes:
+      - /var/run/docker.sock:/host/var/run/docker.sock
+      - /proc:/host/proc:ro
+      - /boot:/host/boot:ro
+      - /lib/modules:/host/lib/modules:ro
+      - /usr:/host/usr:ro
+      - ./monitoring/falco/falco_rules.local.yaml:/etc/falco/falco_rules.local.yaml:ro
+    command: ["/usr/bin/falco", "--modern-bpf"]
+
+volumes:
+  pgdata:
+  grafana-data:
+  loki-data:

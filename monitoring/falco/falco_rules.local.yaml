@@ -1,0 +1,13 @@
+- rule: Write below binary directories
+  desc: Detect writes below common binary directories on the host or container filesystem.
+  condition: evt.type in (open, openat, openat2, creat) and evt.is_open_write=true and fd.name startswith /usr/bin
+  output: "Falco alert: file write below binary directory (user=%user.name command=%proc.cmdline file=%fd.name container=%container.id)"
+  priority: WARNING
+  tags: [filesystem, mitre_persistence]
+
+- rule: Shell spawned in container
+  desc: Detect interactive shell execution inside a container.
+  condition: container and spawned_process and proc.name in (bash, sh, zsh, ash, dash)
+  output: "Falco alert: shell spawned in container (user=%user.name command=%proc.cmdline container=%container.name image=%container.image.repository)"
+  priority: WARNING
+  tags: [container, shell, mitre_execution]

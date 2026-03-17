@@ -1,0 +1,57 @@
+name: Deploy Production
+
+on:
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: Image tag to deploy (sha-<commit> or latest)
+        required: true
+        default: latest
+
+env:
+  APP_DIR: /opt/securevault
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    name: Deploy to production host
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+    steps:
+      - name: Deploy over SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          script_stop: true
+          script: |
+            set -e
+            export GITHUB_REPOSITORY_OWNER='${{ github.repository_owner }}'
+            export IMAGE_TAG='${{ inputs.image_tag }}'
+
+            mkdir -p ${APP_DIR}
+            if [ ! -d "${APP_DIR}/.git" ]; then
+              git clone https://github.com/${{ github.repository }}.git ${APP_DIR}
+            fi
+
+            cd ${APP_DIR}
+            git fetch --all
+            git checkout main
+            git pull origin main
+
+            echo '${{ secrets.GHCR_TOKEN }}' | docker login ghcr.io -u '${{ secrets.GHCR_USERNAME }}' --password-stdin
+            docker compose -f docker-compose.prod.yml pull
+            docker compose -f docker-compose.prod.yml up -d --remove-orphans
+            docker compose -f docker-compose.prod.yml ps
+            sleep 10
+            docker compose -f docker-compose.prod.yml ps
+            if docker compose -f docker-compose.prod.yml ps | grep -E "(Exit|Restarting|unhealthy)"; then
+              echo "Deployment failed: unhealthy services detected"
+              docker compose -f docker-compose.prod.yml logs --tail=200
+              exit 1
+            fi
+            docker image prune -f

@@ -1,0 +1,81 @@
+.login-bg {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
+  background-attachment: fixed;
+}
+
+.login-container {
+  max-width: 420px;
+}
+
+.card {
+  background: rgba(30, 30, 50, 0.65) !important;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  border-radius: 1.25rem !important;
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4) !important;
+}
+
+.login-input {
+  background: rgba(50, 50, 80, 0.6) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  color: white !important;
+}
+
+.login-input:focus {
+  background: rgba(50, 50, 80, 0.8) !important;
+  border-color: #0d6efd !important;
+  box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25) !important;
+}
+
+.login-input::placeholder {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.login-input-addon {
+  background: rgba(40, 40, 70, 0.7) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  color: #adb5bd !important;
+}
+
+.login-toggle-btn {
+  background: rgba(40, 40, 70, 0.7) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  color: #adb5bd !important;
+}
+
+.login-toggle-btn:hover {
+  color: white !important;
+}
+
+.btn-login {
+  background: linear-gradient(90deg, #0d6efd, #6610f2);
+  border: none;
+  color: white;
+  font-weight: 500;
+  padding: 0.75rem;
+}
+
+.btn-login:hover {
+  background: linear-gradient(90deg, #0b5ed7, #5a0ddb);
+  color: white;
+}
+
+.brand-logo {
+  font-size: 2.8rem;
+  font-weight: 700;
+  background: linear-gradient(90deg, #0dcaf0, #6610f2);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.text-link {
+  color: #0dcaf0;
+  text-decoration: none;
+}
+
+.text-link:hover {
+  color: #4dd4ff;
+  text-decoration: underline;
+}

@@ -1,0 +1,55 @@
+---
+- name: Deploy SecureVault with Docker Compose
+  hosts: production
+  become: false
+  vars:
+    app_dir: /opt/securevault
+    image_tag: latest
+    github_repository_owner: CHANGE_ME
+    ghcr_username: CHANGE_ME
+    ghcr_token: CHANGE_ME
+  tasks:
+    - name: Ensure app directory exists
+      ansible.builtin.file:
+        path: "{{ app_dir }}"
+        state: directory
+        mode: "0755"
+
+    - name: Clone or update repository
+      ansible.builtin.git:
+        repo: "https://github.com/{{ github_repository_owner }}/securevault_pro_full.git"
+        dest: "{{ app_dir }}"
+        version: main
+        force: true
+
+    - name: Login to GHCR
+      ansible.builtin.shell: |
+        echo '{{ ghcr_token }}' | docker login ghcr.io -u '{{ ghcr_username }}' --password-stdin
+      changed_when: false
+
+    - name: Pull production images
+      ansible.builtin.shell: |
+        export GITHUB_REPOSITORY_OWNER='{{ github_repository_owner }}'
+        export IMAGE_TAG='{{ image_tag }}'
+        docker compose -f docker-compose.prod.yml pull
+      args:
+        chdir: "{{ app_dir }}"
+
+    - name: Apply production compose orchestration
+      ansible.builtin.shell: |
+        export GITHUB_REPOSITORY_OWNER='{{ github_repository_owner }}'
+        export IMAGE_TAG='{{ image_tag }}'
+        docker compose -f docker-compose.prod.yml up -d --remove-orphans
+      args:
+        chdir: "{{ app_dir }}"
+
+    - name: Show compose status
+      ansible.builtin.shell: docker compose -f docker-compose.prod.yml ps
+      args:
+        chdir: "{{ app_dir }}"
+      register: compose_status
+      changed_when: false
+
+    - name: Print compose status
+      ansible.builtin.debug:
+        var: compose_status.stdout_lines
