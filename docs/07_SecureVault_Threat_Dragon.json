@@ -305,9 +305,7 @@
               "isEncrypted": false,
               "isPublicNetwork": true,
               "protocol": "HTTP/HTTPS",
-              "trustBoundaryIds": [
-                "tb-public-private"
-              ],
+              "trustBoundaryIds": ["tb-public-private"],
               "threats": [
                 {
                   "id": "threat-login-flow-cleartext",
@@ -431,9 +429,7 @@
               "isEncrypted": false,
               "isPublicNetwork": true,
               "protocol": "HTTP/HTTPS",
-              "trustBoundaryIds": [
-                "tb-public-private"
-              ],
+              "trustBoundaryIds": ["tb-public-private"],
               "threats": [
                 {
                   "id": "threat-vault-jwt-replay",

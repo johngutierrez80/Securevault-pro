@@ -2,11 +2,6 @@ name: Deploy Production
 
 on:
   workflow_dispatch:
-    inputs:
-      image_tag:
-        description: Image tag to deploy (sha-<commit> or latest)
-        required: true
-        default: latest
 
 env:
   APP_DIR: /opt/securevault
@@ -31,7 +26,7 @@ jobs:
           script: |
             set -e
             export GITHUB_REPOSITORY_OWNER='${{ github.repository_owner }}'
-            export IMAGE_TAG='${{ inputs.image_tag }}'
+            export IMAGE_TAG='latest'
 
             mkdir -p ${APP_DIR}
             if [ ! -d "${APP_DIR}/.git" ]; then

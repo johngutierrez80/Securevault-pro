@@ -2,10 +2,11 @@ from fastapi import FastAPI
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
-from .routers.secrets import router as secrets_router
-from .models.secret import Base
-from .dependencies.database import engine
+
 from .core.rate_limit import limiter
+from .dependencies.database import engine
+from .models.secret import Base
+from .routers.secrets import router as secrets_router
 
 Base.metadata.create_all(bind=engine)
 

@@ -1,11 +1,12 @@
-
 from cryptography.fernet import Fernet
 
-key=Fernet.generate_key()
-cipher=Fernet(key)
+key = Fernet.generate_key()
+cipher = Fernet(key)
 
-def encrypt(text:str):
+
+def encrypt(text: str):
     return cipher.encrypt(text.encode()).decode()
 
-def decrypt(text:str):
+
+def decrypt(text: str):
     return cipher.decrypt(text.encode()).decode()

@@ -1,8 +1,12 @@
+from app.models.secret import Base
+from app.services.secret_service import (
+    delete_secret,
+    get_secrets,
+    save_secret,
+    update_secret,
+)
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-
-from app.models.secret import Base
-from app.services.secret_service import delete_secret, get_secrets, save_secret, update_secret
 
 
 def build_test_db():

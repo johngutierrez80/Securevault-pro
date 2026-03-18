@@ -1,7 +1,9 @@
 from sqlalchemy.orm import Session
-from ..models.user import User
+
 from ..core.security import hash_password, verify_password
+from ..models.user import User
 from ..utils.jwt import create_access_token
+
 
 def register_user(db: Session, username: str, password: str):
     username = username.strip()
@@ -16,6 +18,7 @@ def register_user(db: Session, username: str, password: str):
     db.commit()
     db.refresh(user)
     return user
+
 
 def authenticate_user(db: Session, username: str, password: str):
     username = username.strip()

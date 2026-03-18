@@ -1,58 +1,58 @@
-import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { loginUser, registerUser } from '../api/auth'
-import './LoginPage.css'
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { loginUser, registerUser } from "../api/auth";
+import "./LoginPage.css";
 
 export default function LoginPage() {
-  const navigate = useNavigate()
-  const [username, setUsername] = useState('')
-  const [password, setPassword] = useState('')
-  const [showPassword, setShowPassword] = useState(false)
-  const [message, setMessage] = useState({ text: '', isError: true })
+  const navigate = useNavigate();
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [message, setMessage] = useState({ text: "", isError: true });
 
   function setMsg(text, isError = true) {
-    setMessage({ text, isError })
+    setMessage({ text, isError });
   }
 
   function validate() {
     if (!username.trim() || !password.trim()) {
-      setMsg('Credenciales incorrectas')
-      return false
+      setMsg("Credenciales incorrectas");
+      return false;
     }
-    return true
+    return true;
   }
 
   async function handleLogin() {
-    if (!validate()) return
+    if (!validate()) return;
     try {
-      const { ok, data } = await loginUser(username, password)
+      const { ok, data } = await loginUser(username, password);
       if (ok) {
-        localStorage.setItem('token', data.access_token)
-        navigate('/dashboard')
+        localStorage.setItem("token", data.access_token);
+        navigate("/dashboard");
       } else {
-        setMsg('Credenciales incorrectas')
+        setMsg("Credenciales incorrectas");
       }
     } catch {
-      setMsg('No fue posible conectar con el servicio de autenticación.')
+      setMsg("No fue posible conectar con el servicio de autenticación.");
     }
   }
 
   async function handleRegister() {
-    if (!validate()) return
+    if (!validate()) return;
     try {
-      const { ok } = await registerUser(username, password)
+      const { ok } = await registerUser(username, password);
       if (ok) {
-        setMsg('Usuario creado. Ahora puedes iniciar sesión.', false)
+        setMsg("Usuario creado. Ahora puedes iniciar sesión.", false);
       } else {
-        setMsg('Credenciales incorrectas')
+        setMsg("Credenciales incorrectas");
       }
     } catch {
-      setMsg('No fue posible conectar con el servicio de autenticación.')
+      setMsg("No fue posible conectar con el servicio de autenticación.");
     }
   }
 
   function handleForgotPassword() {
-    setMsg('Función no disponible en esta versión académica.')
+    setMsg("Función no disponible en esta versión académica.");
   }
 
   return (
@@ -66,9 +66,16 @@ export default function LoginPage() {
 
         <div className="card p-4 p-md-5 shadow-lg">
           <div className="card-body">
-            <h4 className="text-center mb-4 fw-semibold text-white">Iniciar Sesión</h4>
+            <h4 className="text-center mb-4 fw-semibold text-white">
+              Iniciar Sesión
+            </h4>
 
-            <form onSubmit={e => { e.preventDefault(); handleLogin() }}>
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                handleLogin();
+              }}
+            >
               <div className="mb-4">
                 <label className="form-label fw-medium text-white-50">
                   Usuario o Email
@@ -82,7 +89,7 @@ export default function LoginPage() {
                     className="form-control login-input"
                     placeholder="tu@correo.com o usuario"
                     value={username}
-                    onChange={e => setUsername(e.target.value)}
+                    onChange={(e) => setUsername(e.target.value)}
                     autoComplete="username"
                     maxLength={255}
                     autoFocus
@@ -91,26 +98,30 @@ export default function LoginPage() {
               </div>
 
               <div className="mb-4">
-                <label className="form-label fw-medium text-white-50">Contraseña</label>
+                <label className="form-label fw-medium text-white-50">
+                  Contraseña
+                </label>
                 <div className="input-group">
                   <span className="input-group-text login-input-addon">
                     <i className="bi bi-key"></i>
                   </span>
                   <input
-                    type={showPassword ? 'text' : 'password'}
+                    type={showPassword ? "text" : "password"}
                     className="form-control login-input"
                     placeholder="••••••••••••"
                     value={password}
-                    onChange={e => setPassword(e.target.value)}
+                    onChange={(e) => setPassword(e.target.value)}
                     autoComplete="current-password"
                     maxLength={72}
                   />
                   <button
                     className="btn login-toggle-btn"
                     type="button"
-                    onClick={() => setShowPassword(v => !v)}
+                    onClick={() => setShowPassword((v) => !v)}
                   >
-                    <i className={`bi ${showPassword ? 'bi-eye-slash' : 'bi-eye'}`}></i>
+                    <i
+                      className={`bi ${showPassword ? "bi-eye-slash" : "bi-eye"}`}
+                    ></i>
                   </button>
                 </div>
               </div>
@@ -123,14 +134,20 @@ export default function LoginPage() {
                     id="remember"
                     defaultChecked
                   />
-                  <label className="form-check-label text-white-50" htmlFor="remember">
+                  <label
+                    className="form-check-label text-white-50"
+                    htmlFor="remember"
+                  >
                     Recordarme
                   </label>
                 </div>
                 <a
                   href="#"
                   className="text-link"
-                  onClick={e => { e.preventDefault(); handleForgotPassword() }}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    handleForgotPassword();
+                  }}
                 >
                   ¿Olvidaste tu contraseña?
                 </a>
@@ -155,7 +172,7 @@ export default function LoginPage() {
             {message.text && (
               <div
                 className={`mt-4 text-center fw-medium ${
-                  message.isError ? 'text-danger' : 'text-success'
+                  message.isError ? "text-danger" : "text-success"
                 }`}
               >
                 {message.text}
@@ -165,9 +182,12 @@ export default function LoginPage() {
         </div>
 
         <div className="text-center mt-5 small text-secondary">
-          <p>© 2026 SecureVault • Proyecto académico de Seguridad en Cloud y DevOps</p>
+          <p>
+            © 2026 SecureVault • Proyecto académico de Seguridad en Cloud y
+            DevOps
+          </p>
         </div>
       </div>
     </div>
-  )
+  );
 }

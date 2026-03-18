@@ -1,6 +1,8 @@
 from datetime import datetime, timedelta
 
-from jose import jwt, JWTError
+import jwt
+from jwt import InvalidTokenError
+
 from ..core.config import settings
 
 
@@ -13,7 +15,9 @@ def create_access_token(data: dict):
 
 def verify_token(token: str):
     try:
-        payload = jwt.decode(token, settings.secret_key, algorithms=[settings.algorithm])
+        payload = jwt.decode(
+            token, settings.secret_key, algorithms=[settings.algorithm]
+        )
         return payload.get("user")
-    except JWTError:
+    except InvalidTokenError:
         return None

@@ -1,5 +1,6 @@
-from pydantic_settings import BaseSettings
 import redis
+from pydantic_settings import BaseSettings
+
 
 class Settings(BaseSettings):
     database_url: str = "postgresql://vault:vault@postgres:5432/vaultdb"
@@ -9,7 +10,8 @@ class Settings(BaseSettings):
     class Config:
         env_file = ".env"
 
+
 settings = Settings()
 
 # Redis client for caching or rate limiting
-redis_client = redis.Redis(host='redis', port=6379, db=0, decode_responses=True)
+redis_client = redis.Redis(host="redis", port=6379, db=0, decode_responses=True)

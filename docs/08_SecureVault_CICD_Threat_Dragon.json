@@ -342,9 +342,7 @@
               "isEncrypted": true,
               "isPublicNetwork": true,
               "protocol": "HTTPS",
-              "trustBoundaryIds": [
-                "tb-dev-platform"
-              ],
+              "trustBoundaryIds": ["tb-dev-platform"],
               "threats": []
             }
           },
@@ -421,9 +419,7 @@
               "isEncrypted": true,
               "isPublicNetwork": true,
               "protocol": "HTTPS",
-              "trustBoundaryIds": [
-                "tb-dev-platform"
-              ],
+              "trustBoundaryIds": ["tb-dev-platform"],
               "threats": []
             }
           },
@@ -459,9 +455,7 @@
               "isEncrypted": true,
               "isPublicNetwork": true,
               "protocol": "HTTPS",
-              "trustBoundaryIds": [
-                "tb-dev-platform"
-              ],
+              "trustBoundaryIds": ["tb-dev-platform"],
               "threats": []
             }
           },
@@ -502,9 +496,7 @@
               "isEncrypted": true,
               "isPublicNetwork": true,
               "protocol": "HTTPS",
-              "trustBoundaryIds": [
-                "tb-dev-platform"
-              ],
+              "trustBoundaryIds": ["tb-dev-platform"],
               "threats": [
                 {
                   "id": "threat-approval-abuse",
@@ -556,9 +548,7 @@
               "isEncrypted": true,
               "isPublicNetwork": true,
               "protocol": "SSH plus HTTPS",
-              "trustBoundaryIds": [
-                "tb-dev-platform"
-              ],
+              "trustBoundaryIds": ["tb-dev-platform"],
               "threats": []
             }
           }

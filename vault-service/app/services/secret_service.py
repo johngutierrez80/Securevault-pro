@@ -1,6 +1,7 @@
 from sqlalchemy.orm import Session
+
 from ..models.secret import Secret
-from ..utils.crypto import encrypt, decrypt
+from ..utils.crypto import decrypt, encrypt
 
 
 def save_secret(db: Session, site: str, password: str, owner: str):
@@ -14,11 +15,16 @@ def save_secret(db: Session, site: str, password: str, owner: str):
 
 def get_secrets(db: Session, owner: str):
     secrets = db.query(Secret).filter(Secret.owner == owner).all()
-    return [{"id": s.id, "site": s.site, "password": decrypt(s.encrypted_password)} for s in secrets]
+    return [
+        {"id": s.id, "site": s.site, "password": decrypt(s.encrypted_password)}
+        for s in secrets
+    ]
 
 
 def get_secret(db: Session, owner: str, secret_id: int):
-    return db.query(Secret).filter(Secret.owner == owner, Secret.id == secret_id).first()
+    return (
+        db.query(Secret).filter(Secret.owner == owner, Secret.id == secret_id).first()
+    )
 
 
 def update_secret(db: Session, secret_id: int, owner: str, site: str, password: str):
