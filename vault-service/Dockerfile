@@ -6,6 +6,9 @@ COPY requirements.txt .
 
 RUN pip install --no-cache-dir -r requirements.txt
 
+# slowapi/starlette expects an env file path and fails hard if it does not exist.
+RUN touch .env
+
 RUN useradd -m appuser
 
 COPY app/ ./app/

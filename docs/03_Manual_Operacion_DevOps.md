@@ -116,6 +116,8 @@ docker compose exec -T postgres psql -U vault -d vaultdb < backup_vaultdb.sql
 - Mensaje no se pudieron cargar los datos de la bóveda: revisar logs de vault y estado de token.
 - Error de servicio no existe: usar nombres de servicio reales en compose (auth, vault, postgres, redis, gateway).
 - Cambios de frontend no reflejados: recargar con Ctrl+F5 o reconstruir gateway.
+- Error `FileNotFoundError: Config file '.env' not found` en vault-1: Asegurar que vault-service/Dockerfile contiene `RUN touch .env` después de pip install. El archivo es requerido por SlowAPI aunque esté vacío.
+- Error de permisos en nginx (Permission denied /var/cache/nginx): Asegurar que frontend-spa/Dockerfile NO contiene `USER nginx`. Remover esa línea si existe; el contenedor debe ejecutar como root (user por defecto en nginx:alpine).
 
 ## 9. Shift-left local con pre-commit
 
@@ -138,7 +140,37 @@ pytest -q --cov=app --cov-report=term-missing --cov-report=xml
 
 Actualmente la cobertura se enfoca en hashing, JWT, cifrado, validación de token y operaciones base de secretos.
 
-## 11. Runtime security con Falco
+## 9. Compatibilidad de dependencias
+
+### Dependencias conocidas
+
+- **eslint-plugin-react**: versionado a `^7.37.5` en frontend-spa. Versión `^7.38.0` no existe en npm registry.
+- **Vault Dockerfile**: requiere archivo `.env` (vacío) en build context debido a validación de SlowAPI en startup.
+- **Frontend Dockerfile**: no debe incluir `USER nginx` para evitar fallos de permisos en /var/cache/nginx.
+
+### Validación post-arranque
+
+Antes de considerar que el entorno está listo, verificar:
+
+```powershell
+# Estado de servicios
+docker compose ps
+# Todos deben estar en "Up" o "Healthy"
+
+# Acceso a endpoints
+curl http://localhost:3000               # Gateway (200)
+curl http://localhost:8001/docs         # Auth API (200)
+curl http://localhost:8002/docs         # Vault API (200)
+
+# Salud de base de datos
+docker compose exec postgres psql -U vault -d vaultdb -c "SELECT 1;"
+
+# Salud de Redis
+docker compose exec redis redis-cli ping
+# Esperado: PONG
+```
+
+## 10. Runtime security con Falco
 
 El compose productivo incluye `falco` para detectar comportamientos anómalos en runtime.
 

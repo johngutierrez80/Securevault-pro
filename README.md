@@ -122,7 +122,24 @@ Cobertura funcional y trazabilidad:
 - Endurecimiento de observabilidad (dashboards, alertas y correlación de eventos de seguridad).
 - Pruebas automatizadas de integración.
 
-## 10. Pipeline CI/CD DevSecOps en GitHub Actions
+## 10. Notas de compatibilidad y fixes locales
+
+### Dependencias ajustadas
+
+- **eslint-plugin-react (frontend-spa)**: versionado a `^7.37.5` (npm registry public).
+  - Motivo: la versión `^7.38.0` no existe en el registro npm. Ajuste mínimo para construcción Docker.
+
+### Ajustes de Dockerfile
+
+- **vault-service/Dockerfile**: agregado `RUN touch .env` después de `pip install`.
+  - Motivo: SlowAPI (rate limiter) valida existencia de archivo .env en tiempo de inicialización. Archivo vacío es suficiente para desarrollo local.
+
+- **frontend-spa/Dockerfile**: eliminada directiva `USER nginx`.
+  - Motivo: evita Permission denied en `/var/cache/nginx` cuando Nginx intenta crear directorios temporales. El contenedor nginx ejecuta como root por defecto en Alpine.
+
+Estos cambios son necesarios para ejecución local con Docker Compose y no afectan lógica de negocio ni seguridad en producción.
+
+## 11. Pipeline CI/CD DevSecOps en GitHub Actions
 
 El repositorio ahora incluye un pipeline completo en GitHub Actions:
 
@@ -206,7 +223,7 @@ pre-commit install
 
 - El workflow de CI ejecuta `pytest --cov=app --cov-report=term-missing --cov-report=xml` en `auth-service` y `vault-service`.
 
-## 11. Documentación de referencia
+## 12. Documentación de referencia
 
 - [Manual de Usuario](docs/01_Manual_Usuario.md)
 - [Manual Técnico](docs/02_Manual_Tecnico.md)
