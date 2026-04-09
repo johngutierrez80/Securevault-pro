@@ -1,78 +1,190 @@
-# Manual Técnico
+# SecureVault Pro
 
-## 1. Arquitectura general
+[![CI DevSecOps](https://github.com/johngutierrez80/Securevault-pro/actions/workflows/ci-devsecops.yml/badge.svg)](https://github.com/johngutierrez80/Securevault-pro/actions/workflows/ci-devsecops.yml)
+[![DAST ZAP](https://github.com/johngutierrez80/Securevault-pro/actions/workflows/dast-zap.yml/badge.svg)](https://github.com/johngutierrez80/Securevault-pro/actions/workflows/dast-zap.yml)
+[![Container Release](https://github.com/johngutierrez80/Securevault-pro/actions/workflows/container-release.yml/badge.svg)](https://github.com/johngutierrez80/Securevault-pro/actions/workflows/container-release.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
-SecureVault está implementado con arquitectura de microservicios ligeros:
-- Frontend SPA (React + Vite) servido por Nginx.
-- Auth Service (FastAPI): registro y login, emisión de JWT.
-- Vault Service (FastAPI): CRUD de secretos por usuario autenticado.
-- Worker Service (Python): proceso asincrono para tareas desacopladas basadas en Redis.
-- PostgreSQL: persistencia de usuarios y secretos.
-- Redis: backend de rate limiting y cola para worker.
-- Docker Compose: orquestación local.
+Proyecto final de Especializacion en Ciberseguridad con enfasis DevSecOps.
 
-## 2. Estructura de componentes
-- frontend-spa/: interfaz React/Vite.
-- servicios/auth-service/: autenticación y token JWT.
-- servicios/vault-service/: gestión de bóveda con cifrado.
-- servicios/worker-service/: procesamiento asincrono de eventos en segundo plano.
-- infraestructura/ansible/: IaC para despliegue automatizado.
-- orquestacion/kubernetes/: manifests base para K3s/Kubernetes.
-- nginx/: reverse proxy de entrada.
-- docker-compose.yml: despliegue local integrado.
+SecureVault Pro implementa una plataforma para gestion segura de secretos con arquitectura de microservicios y pipeline DevSecOps de ciclo completo.
 
-## 3. Diagrama de Casos de Uso
+## 1. Objetivo
 
-El siguiente diagrama resume las interacciones principales del usuario con el sistema SecureVault:
+Demostrar integracion end-to-end de practicas DevSecOps:
 
-```mermaid
-flowchart LR
-	U([Usuario])
+- Arquitectura de microservicios contenerizada.
+- Automatizacion CI/CD con controles de seguridad en cada fase.
+- Infraestructura como codigo para despliegue.
+- Evidencia de pruebas, threat modeling y monitoreo.
 
-	subgraph SV[SecureVault]
-		UC1([Registrar cuenta])
-		UC2([Iniciar sesión])
-		UC3([Guardar secreto])
-		UC4([Listar secretos])
-		UC5([Editar secreto])
-		UC6([Eliminar secreto])
-		UC7([Cerrar sesión])
-	end
+## 2. Arquitectura
 
-	U --> UC1
-	U --> UC2
-	U --> UC3
-	U --> UC4
-	U --> UC5
-	U --> UC6
-	U --> UC7
+Componentes principales:
 
-	UC1 -. usa .-> A[(Auth Service)]
-	UC2 -. usa .-> A
-	UC3 -. usa .-> V[(Vault Service)]
-	UC4 -. usa .-> V
-	UC5 -. usa .-> V
-	UC6 -. usa .-> V
+- Frontend SPA en React + Vite (frontend-spa/).
+- Auth Service en FastAPI (servicios/auth-service/).
+- Vault Service en FastAPI (servicios/vault-service/).
+- Worker Service asincrono en Python (servicios/worker-service/).
+- PostgreSQL para persistencia.
+- Redis para comunicacion asincrona y soporte de rate limiting.
+- Gateway Nginx para exposicion unificada.
 
-	A -. persiste .-> DB[(PostgreSQL)]
-	V -. persiste .-> DB
-	V -. rate limiting .-> R[(Redis)]
+## 3. Estructura del repositorio
+
+Estructura alineada con la guia del curso:
+
+```text
+securevault-pro/
+├── LICENSE
+├── README.md
+├── docker-compose.yml
+├── docker-compose.prod.yml
+├── .github/workflows/
+├── infraestructura/        # IaC (Ansible)
+├── orquestacion/           # Kubernetes/K3s
+├── servicios/              # Microservicios backend + worker
+├── frontend-spa/           # SPA frontend
+├── monitoring/             # Prometheus, Grafana, Loki, Falco
+├── threat-model/           # OWASP Threat Dragon exports
+└── docs/                   # Documentacion academica y tecnica
 ```
 
-Cobertura funcional y trazabilidad:
+Notas:
 
-- Registro e inicio de sesión: alineado con CP-01 a CP-04 del plan de pruebas.
-- CRUD de secretos: alineado con CP-05 a CP-08 del plan de pruebas.
-- Control de acceso y límites: relacionado con CP-09 y CP-10.
+- versions/ conserva versiones previas del proyecto.
+- iac/ se mantiene por compatibilidad; la ruta activa para IaC es infraestructura/.
 
-## 4. Modelo de datos
+## 4. Quick start
 
-### Tabla users
+Requisitos:
 
-- id: integer, PK.
-- username: string, único.
-- hashed_password: string.
+- Docker + Docker Compose
+- Puertos libres: 3000, 8001, 8002, 5432, 6379
 
+Arranque local:
+
+```powershell
+docker compose up -d --build
+docker compose ps
+```
+
+Accesos:
+
+- Frontend/Gateway: http://localhost:3000
+- Auth API docs: http://localhost:8001/docs
+- Vault API docs: http://localhost:8002/docs
+
+## 5. Pipeline DevSecOps
+
+Workflows principales:
+
+- .github/workflows/ci-devsecops.yml
+- .github/workflows/container-release.yml
+- .github/workflows/dast-zap.yml
+- .github/workflows/deploy-production.yml
+
+Controles implementados:
+
+- Plan: Threat modeling con OWASP Threat Dragon.
+- Code: secret scanning, SAST y SCA.
+- Build: construccion y escaneo de imagenes.
+- Test: pruebas backend/frontend y DAST con OWASP ZAP.
+- Release/Deploy: publicacion de imagenes + despliegue automatizado.
+- Operate/Monitor: Prometheus, Grafana, Loki/Promtail y Falco.
+
+## 6. Documentacion
+
+Documentos principales en docs/:
+
+- 01_Manual_Usuario.md
+- 02_Manual_Tecnico.md
+- 03_Manual_Operacion_DevOps.md
+- 04_Seguridad_y_Riesgos.md
+- 05_Plan_Pruebas.md
+- 06_Checklist_Entrega.md
+- 07_SecureVault_Threat_Dragon.json
+- 08_SecureVault_CICD_Threat_Dragon.json
+
+## 7. Entregables academicos
+
+Estado esperado de entrega:
+
+- Repositorio GitHub publico con codigo, pipelines, IaC y documentacion.
+- Imagenes publicadas y versionadas en Docker Hub/GHCR.
+- Informe tecnico en PDF.
+- Video de demostracion del ciclo completo.
+
+Checklist operativo en docs/06_Checklist_Entrega.md.
+
+## 8. Licencia
+
+Este proyecto usa licencia MIT. Ver LICENSE.
+# SecureVault Pro
+
+[![CI DevSecOps](https://github.com/johngutierrez80/Securevault-pro/actions/workflows/ci-devsecops.yml/badge.svg)](https://github.com/johngutierrez80/Securevault-pro/actions/workflows/ci-devsecops.yml)
+[![DAST ZAP](https://github.com/johngutierrez80/Securevault-pro/actions/workflows/dast-zap.yml/badge.svg)](https://github.com/johngutierrez80/Securevault-pro/actions/workflows/dast-zap.yml)
+[![Container Release](https://github.com/johngutierrez80/Securevault-pro/actions/workflows/container-release.yml/badge.svg)](https://github.com/johngutierrez80/Securevault-pro/actions/workflows/container-release.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+
+Proyecto final de Especializacion en Ciberseguridad con enfasis DevSecOps.
+
+SecureVault Pro implementa una plataforma para gestion segura de secretos con arquitectura de microservicios y pipeline DevSecOps de ciclo completo.
+
+## 1. Objetivo
+
+Demostrar integracion end-to-end de practicas DevSecOps:
+
+- Arquitectura de microservicios contenerizada.
+- Automatizacion CI/CD con controles de seguridad en cada fase.
+- Infraestructura como codigo para despliegue.
+- Evidencia de pruebas, threat modeling y monitoreo.
+
+## 2. Arquitectura
+
+Componentes principales:
+
+- Frontend SPA en React + Vite (`frontend-spa/`).
+- Auth Service en FastAPI (`servicios/auth-service/`).
+- Vault Service en FastAPI (`servicios/vault-service/`).
+- Worker Service asincrono en Python (`servicios/worker-service/`).
+- PostgreSQL para persistencia.
+- Redis para comunicacion asincrona y soporte de rate limiting.
+- Gateway Nginx para exposicion unificada.
+
+## 3. Estructura del repositorio
+
+Estructura alineada con la guia del curso:
+
+```text
+securevault-pro/
+├── LICENSE
+├── README.md
+├── docker-compose.yml
+├── docker-compose.prod.yml
+├── .github/workflows/
+├── infraestructura/        # IaC (Ansible)
+├── orquestacion/           # Kubernetes/K3s
+├── servicios/              # Microservicios backend + worker
+├── frontend-spa/           # SPA frontend
+├── monitoring/             # Prometheus, Grafana, Loki, Falco
+├── threat-model/           # OWASP Threat Dragon exports
+└── docs/                   # Documentacion academica y tecnica
+```
+
+Notas:
+
+- `versions/` conserva versiones previas del proyecto.
+- `iac/` se mantiene por compatibilidad; la ruta activa para IaC es `infraestructura/`.
+
+## 4. Quick start
+
+Requisitos:
+
+- Docker + Docker Compose
+- Puertos libres: `3000`, `8001`, `8002`, `5432`, `6379`
+
+<<<<<<< HEAD
 ### Tabla secrets
 
 - id: integer, PK.
@@ -242,47 +354,63 @@ Evidencia técnica en workflows:
 - `.github/workflows/ci-devsecops.yml`: controles SCA y threshold crítico.
 
 ### Uso local de pre-commit
+=======
+Arranque local:
+>>>>>>> b023018 (chore: limpiar duplicados legacy y alinear estructura/documentacion)
 
 ```powershell
-pip install pre-commit
-pre-commit install
+docker compose up -d --build
+docker compose ps
 ```
 
-### Monitoreo básico en producción
+Accesos:
 
-- Prometheus: `http://<host>:9090`
-- Grafana: `http://<host>:3001`
-- cAdvisor: `http://<host>:8080`
-- Loki: `http://<host>:3100`
+- Frontend/Gateway: `http://localhost:3000`
+- Auth API docs: `http://localhost:8001/docs`
+- Vault API docs: `http://localhost:8002/docs`
 
-### Runtime security
+## 5. Pipeline DevSecOps
 
-- Falco se ejecuta como servicio de detección de comportamiento en runtime sobre el host Docker.
-- Requiere soporte de kernel para eBPF moderno y privilegios elevados en el host destino.
+Workflows principales:
 
-### Cobertura de pruebas en CI
+- `.github/workflows/ci-devsecops.yml`
+- `.github/workflows/container-release.yml`
+- `.github/workflows/dast-zap.yml`
+- `.github/workflows/deploy-production.yml`
 
-- El workflow de CI ejecuta `pytest --cov=app --cov-report=term-missing --cov-report=xml` en `servicios/auth-service` y `servicios/vault-service`.
+Controles implementados:
 
-### Demo de worker asíncrono (sustentación)
+- Plan: Threat modeling con OWASP Threat Dragon.
+- Code: secret scanning, SAST y SCA.
+- Build: construccion y escaneo de imagenes.
+- Test: pruebas backend/frontend y DAST con OWASP ZAP.
+- Release/Deploy: publicacion de imagenes + despliegue automatizado.
+- Operate/Monitor: Prometheus, Grafana, Loki/Promtail y Falco.
 
-Para demostrar en 3 pasos la eliminación automática de secretos expirados:
+## 6. Documentacion
 
-```powershell
-powershell -ExecutionPolicy Bypass -File scripts/demo-worker-expiration.ps1
-```
+Documentos principales en `docs/`:
 
-El script realiza:
+- `01_Manual_Usuario.md`
+- `02_Manual_Tecnico.md`
+- `03_Manual_Operacion_DevOps.md`
+- `04_Seguridad_y_Riesgos.md`
+- `05_Plan_Pruebas.md`
+- `06_Checklist_Entrega.md`
+- `07_SecureVault_Threat_Dragon.json`
+- `08_SecureVault_CICD_Threat_Dragon.json`
 
-1. Registro/login y creación de secreto con expiración.
-2. Forzado de expiración corta en Redis para demo.
-3. Verificación de eliminación automática por `worker-service`.
+## 7. Entregables academicos
 
-## 12. Documentación de referencia
+Estado esperado de entrega:
 
-- [Manual de Usuario](docs/01_Manual_Usuario.md)
-- [Manual Técnico](docs/02_Manual_Tecnico.md)
-- [Manual de Operación y DevOps](docs/03_Manual_Operacion_DevOps.md)
-- [Seguridad y Riesgos](docs/04_Seguridad_y_Riesgos.md)
-- [Plan de Pruebas](docs/05_Plan_Pruebas.md)
-- [Checklist de Entrega](docs/06_Checklist_Entrega.md)
+- Repositorio GitHub publico con codigo, pipelines, IaC y documentacion.
+- Imagenes publicadas y versionadas en Docker Hub/GHCR.
+- Informe tecnico en PDF.
+- Video de demostracion del ciclo completo.
+
+Checklist operativo en `docs/06_Checklist_Entrega.md`.
+
+## 8. Licencia
+
+Este proyecto usa licencia MIT. Ver `LICENSE`.

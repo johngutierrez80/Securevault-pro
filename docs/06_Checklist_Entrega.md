@@ -1,49 +1,64 @@
 # Checklist de Entrega
 
-## 1. Código y ejecución
+## 1. Entregables obligatorios del curso
 
-- [ ] Proyecto levanta con docker compose up -d --build
-- [ ] Todos los servicios en estado running/healthy
-- [ ] Acceso web en http://localhost:3000
+- [ ] Repositorio GitHub publico con codigo, pipelines, IaC y documentacion
+- [ ] Imagenes publicadas y versionadas en Docker Hub
+- [ ] Informe tecnico en PDF
+- [ ] Video-demostracion de 10 a 15 minutos
 
-## 2. Funcionalidad
+## 2. Estructura del repositorio
 
-- [ ] Registro de usuario
-- [ ] Login con token
-- [ ] Guardar secreto
-- [ ] Listar secretos
-- [ ] Editar secreto
-- [ ] Eliminar secreto
-- [ ] Logout
+- [ ] `LICENSE` (MIT/Apache-2.0/GPL-3.0)
+- [ ] `README.md` principal con quick start
+- [ ] `docker-compose.yml`
+- [ ] `.github/workflows/` con CI/CD
+- [ ] `infraestructura/` (IaC)
+- [ ] `orquestacion/` (Kubernetes/K3s/Swarm)
+- [ ] `servicios/` (microservicios)
+- [ ] `docs/` (manuales y evidencias)
 
-## 3. Seguridad
+## 3. Validacion tecnica y ejecucion
 
-- [ ] Mensajes de login sin exposición técnica
-- [ ] Endpoints de vault protegidos con JWT
-- [ ] Token con expiración
+- [ ] Proyecto levanta con `docker compose up -d --build`
+- [ ] Servicios en estado running/healthy
+- [ ] Acceso funcional por gateway en `http://localhost:3000`
+- [ ] Registro, login y CRUD de secretos funcionando
+- [ ] Worker asincrono ejecutando tarea verificable
+
+## 4. Seguridad minima requerida
+
+- [ ] JWT implementado y validado en endpoints protegidos
+- [ ] Contrasenas hasheadas
+- [ ] Secretos cifrados en reposo
 - [ ] Rate limiting activo
-- [ ] Contraseñas hasheadas
-- [ ] Secretos cifrados
+- [ ] Secret scanning integrado (Gitleaks/TruffleHog)
+- [ ] SAST integrado (Bandit/Semgrep)
+- [ ] SCA integrado (Trivy/Dependency-Check/pip-audit/npm audit)
+- [ ] DAST automatizado (OWASP ZAP)
 
-## 4. Persistencia y datos
+## 5. Pipeline DevSecOps por fases
 
-- [ ] Datos persisten tras reinicio de servicios
-- [ ] Tablas users y secrets verificadas en PostgreSQL
-- [ ] ENCRYPTION_KEY definida para entorno de demostración
+- [ ] Plan: Threat modeling en OWASP Threat Dragon + STRIDE
+- [ ] Code: controles de seguridad sobre codigo y dependencias
+- [ ] Build: build de imagenes + escaneo de CVE criticos
+- [ ] Test: pruebas unitarias + DAST
+- [ ] Release/Deploy: publicacion y despliegue automatizado
+- [ ] Operate/Monitor: monitoreo y logs (bonificable)
 
-## 5. Documentación
+## 6. Documentacion obligatoria
 
-- [ ] README actualizado
+- [ ] README principal actualizado
 - [ ] Manual de Usuario
-- [ ] Manual Técnico
-- [ ] Manual de Operación y DevOps
-- [ ] Seguridad y Riesgos
+- [ ] Manual Tecnico (arquitectura y diagramas)
+- [ ] Manual de Operacion y DevOps
+- [ ] Manual de Seguridad y Riesgos
 - [ ] Plan de Pruebas
-- [ ] Evidencias (capturas) anexadas
+- [ ] Evidencias de ejecucion y reportes de seguridad
 
-## 6. Presentación
+## 7. Sustentacion
 
-- [ ] Arquitectura explicada en 1 diagrama
+- [ ] Arquitectura explicada con diagramas
 - [ ] Flujo end-to-end demostrado en vivo
 - [ ] Riesgos y mitigaciones presentados
-- [ ] Limitaciones actuales y mejoras futuras declaradas
+- [ ] Lecciones aprendidas y mejoras futuras declaradas
