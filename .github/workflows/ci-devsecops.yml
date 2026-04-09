@@ -22,6 +22,8 @@ jobs:
             path: servicios/auth-service
           - service: vault
             path: servicios/vault-service
+          - service: worker
+            path: servicios/worker-service
     defaults:
       run:
         working-directory: ${{ matrix.path }}

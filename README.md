@@ -105,6 +105,12 @@ Documentos principales en docs/:
 - 07_SecureVault_Threat_Dragon.json
 - 08_SecureVault_CICD_Threat_Dragon.json
 
+Diagramas clave para sustentacion:
+
+- DFD Nivel 0 y DFD Nivel 1: docs/02_Manual_Tecnico.md (secciones 4 y 5).
+- Diagrama de Casos de Uso: docs/02_Manual_Tecnico.md (seccion 3).
+- Threat models (OWASP Threat Dragon): threat-model/ y docs/07_*.json + docs/08_*.json.
+
 ## 7. Entregables academicos
 
 Estado esperado de entrega:

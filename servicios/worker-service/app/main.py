@@ -20,6 +20,8 @@ REDIS_HOST = os.getenv("REDIS_HOST", "redis")
 REDIS_PORT = int(os.getenv("REDIS_PORT", "6379"))
 DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://vault:vault@postgres:5432/vaultdb")
 EXPIRATION_CLEANUP_INTERVAL_SECONDS = int(os.getenv("WORKER_CLEANUP_INTERVAL", "30"))
+BLPOP_TIMEOUT_SECONDS = int(os.getenv("WORKER_BLPOP_TIMEOUT", "5"))
+REDIS_SOCKET_TIMEOUT_SECONDS = int(os.getenv("WORKER_REDIS_SOCKET_TIMEOUT", "7"))
 
 Base = declarative_base()
 
@@ -122,7 +124,7 @@ if __name__ == "__main__":
         db=0,
         decode_responses=True,
         socket_connect_timeout=2,
-        socket_timeout=2,
+        socket_timeout=REDIS_SOCKET_TIMEOUT_SECONDS,
     )
 
     logging.info("Worker started. Listening on queue key '%s'", QUEUE_KEY)
@@ -130,7 +132,7 @@ if __name__ == "__main__":
 
     while running:
         try:
-            item = client.blpop(QUEUE_KEY, timeout=5)
+            item = client.blpop(QUEUE_KEY, timeout=BLPOP_TIMEOUT_SECONDS)
             if not item:
                 if int(time.time()) - last_cleanup_epoch >= EXPIRATION_CLEANUP_INTERVAL_SECONDS:
                     _cleanup_expired_secrets(client)
@@ -147,6 +149,13 @@ if __name__ == "__main__":
             logging.warning("Invalid JSON payload in queue: %s", exc)
         except redis.exceptions.RedisError as exc:
             logging.warning("Redis error while consuming queue: %s", exc)
+            # Run cleanup attempt even if queue read fails intermittently.
+            try:
+                if int(time.time()) - last_cleanup_epoch >= EXPIRATION_CLEANUP_INTERVAL_SECONDS:
+                    _cleanup_expired_secrets(client)
+                    last_cleanup_epoch = int(time.time())
+            except Exception:
+                logging.exception("Unexpected error during cleanup fallback")
             time.sleep(2)
         except Exception as exc:
             logging.exception("Unexpected worker error: %s", exc)
