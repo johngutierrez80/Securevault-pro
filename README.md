@@ -144,7 +144,7 @@ Estos cambios son necesarios para ejecución local con Docker Compose y no afect
 
 ## 11. Pipeline CI/CD DevSecOps en GitHub Actions
 
-El repositorio ahora incluye un pipeline completo en GitHub Actions:
+El repositorio  incluye un pipeline completo en GitHub Actions:
 
 - CI + seguridad en `.github/workflows/ci-devsecops.yml`.
 - Release de contenedores a GHCR en `.github/workflows/container-release.yml`.
