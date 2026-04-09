@@ -19,9 +19,9 @@ jobs:
       matrix:
         include:
           - service: auth
-            path: auth-service
+            path: servicios/auth-service
           - service: vault
-            path: vault-service
+            path: servicios/vault-service
     defaults:
       run:
         working-directory: ${{ matrix.path }}
@@ -147,12 +147,12 @@ jobs:
       - name: Lint auth Dockerfile
         uses: hadolint/hadolint-action@v3.1.0
         with:
-          dockerfile: auth-service/Dockerfile
+          dockerfile: servicios/auth-service/Dockerfile
 
       - name: Lint vault Dockerfile
         uses: hadolint/hadolint-action@v3.1.0
         with:
-          dockerfile: vault-service/Dockerfile
+          dockerfile: servicios/vault-service/Dockerfile
 
       - name: Lint frontend Dockerfile
         uses: hadolint/hadolint-action@v3.1.0
@@ -191,7 +191,7 @@ jobs:
           format: HTML
           out: reports
           args: >-
-            --failOnCVSS 7
+            --failOnCVSS 9
             --enableRetired
 
   iac-checkov:

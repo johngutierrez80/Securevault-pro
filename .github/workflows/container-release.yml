@@ -13,16 +13,21 @@ jobs:
   build-push-images:
     name: Build and Push (${{ matrix.image_name }})
     runs-on: ubuntu-latest
+    env:
+      LOCAL_SCAN_IMAGE: local/${{ matrix.image_name }}:scan-${{ github.sha }}
     strategy:
       fail-fast: false
       matrix:
         include:
           - image_name: securevault-auth
-            context: auth-service
-            dockerfile: auth-service/Dockerfile
+            context: servicios/auth-service
+            dockerfile: servicios/auth-service/Dockerfile
           - image_name: securevault-vault
-            context: vault-service
-            dockerfile: vault-service/Dockerfile
+            context: servicios/vault-service
+            dockerfile: servicios/vault-service/Dockerfile
+          - image_name: securevault-worker
+            context: servicios/worker-service
+            dockerfile: servicios/worker-service/Dockerfile
           - image_name: securevault-frontend
             context: frontend-spa
             dockerfile: frontend-spa/Dockerfile
@@ -63,19 +68,19 @@ jobs:
             type=raw,value=latest,enable={{is_default_branch}}
             type=ref,event=tag
 
-      - name: Build and push
+      - name: Build local image for security scan
         uses: docker/build-push-action@v6
         with:
           context: ${{ matrix.context }}
           file: ${{ matrix.dockerfile }}
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
+          load: true
+          push: false
+          tags: ${{ env.LOCAL_SCAN_IMAGE }}
 
       - name: Trivy image scan
         uses: aquasecurity/trivy-action@v0.25.0
         with:
-          image-ref: ghcr.io/${{ github.repository_owner }}/${{ matrix.image_name }}:sha-${{ github.sha }}
+          image-ref: ${{ env.LOCAL_SCAN_IMAGE }}
           format: table
           severity: CRITICAL
           ignore-unfixed: true
@@ -84,7 +89,16 @@ jobs:
       - name: Grype image scan
         uses: anchore/scan-action@v7
         with:
-          image: ghcr.io/${{ github.repository_owner }}/${{ matrix.image_name }}:sha-${{ github.sha }}
+          image: ${{ env.LOCAL_SCAN_IMAGE }}
           fail-build: true
           severity-cutoff: critical
           only-fixed: true
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ matrix.context }}
+          file: ${{ matrix.dockerfile }}
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}

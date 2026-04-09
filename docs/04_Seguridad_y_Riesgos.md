@@ -8,6 +8,7 @@
 - Hash de contraseñas de usuario con bcrypt.
 - Cifrado de secretos de la bóveda con Fernet.
 - Rate limiting en endpoints de vault (10/minuto por IP) usando Redis.
+- Worker asíncrono independiente para consumo de eventos de seguridad desde Redis.
 - Separación de servicios detrás de gateway Nginx.
 
 ## 2. Riesgos identificados
@@ -67,17 +68,17 @@ Este proyecto demuestra controles de seguridad aplicables a entornos cloud y Dev
 
 Se agregó un modelo de amenazas en formato JSON importable por OWASP Threat Dragon:
 
-- Archivo: `docs/07_SecureVault_Threat_Dragon.json`
+- Archivo: `threat-model/01_SecureVault_Operativo_Threat_Dragon.json`
 - Contenido: DFD principal con trust boundary, usuario, gateway, auth-service, vault-service, PostgreSQL, Redis y amenazas STRIDE representativas.
-- Archivo adicional: `docs/08_SecureVault_CICD_Threat_Dragon.json`
+- Archivo adicional: `threat-model/02_SecureVault_CICD_Threat_Dragon.json`
 - Contenido adicional: DFD de supply chain y CI/CD con GitHub, GitHub Actions, GHCR, Docker Hub, aprobación de despliegue y host productivo.
 
 Uso recomendado:
 
 - Abrir OWASP Threat Dragon.
 - Seleccionar importar modelo JSON.
-- Cargar el archivo `docs/07_SecureVault_Threat_Dragon.json`.
-- Repetir el proceso con `docs/08_SecureVault_CICD_Threat_Dragon.json` para el análisis de la cadena CI/CD.
+- Cargar el archivo `threat-model/01_SecureVault_Operativo_Threat_Dragon.json`.
+- Repetir el proceso con `threat-model/02_SecureVault_CICD_Threat_Dragon.json` para el análisis de la cadena CI/CD.
 
 ## 7. Shift-left con pre-commit
 

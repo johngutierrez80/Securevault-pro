@@ -24,7 +24,7 @@ npm error notarget No matching version found for eslint-plugin-react@^7.38.0
 
 ## 2. Vault Service - Missing .env file
 
-**Archivo:** `vault-service/Dockerfile`  
+**Archivo:** `servicios/vault-service/Dockerfile`  
 **Problema:** SlowAPI (middleware de rate limiting) valida archivo `.env` en tiempo de inicialización del módulo.  
 **Error durante startup:**
 ```

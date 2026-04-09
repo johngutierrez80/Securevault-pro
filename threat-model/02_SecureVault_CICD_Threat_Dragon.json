@@ -1,0 +1,563 @@
+{
+  "summary": {
+    "title": "SecureVault CI/CD and Supply Chain Threat Model",
+    "owner": "SecureVault Team",
+    "description": "Threat model focused on the GitHub-based DevSecOps pipeline, image publication to GHCR and Docker Hub, and production deployment by approved workflow.",
+    "id": 2
+  },
+  "detail": {
+    "contributors": [
+      {
+        "name": "GitHub Copilot"
+      }
+    ],
+    "diagrams": [
+      {
+        "id": 0,
+        "title": "CI/CD Supply Chain DFD",
+        "description": "Data flow diagram for source control, CI security gates, registries and production deployment.",
+        "diagramType": "STRIDE",
+        "version": "2.4.1",
+        "cells": [
+          {
+            "id": "tb-dev-platform",
+            "shape": "trust-boundary-box",
+            "zIndex": 0,
+            "position": {
+              "x": 20,
+              "y": 20
+            },
+            "size": {
+              "width": 1380,
+              "height": 700
+            },
+            "data": {
+              "type": "tm.BoundaryBox",
+              "name": "Development and Deployment Trust Boundary",
+              "description": "Boundary spanning developer workstation, GitHub platform, registries and production host.",
+              "isTrustBoundary": true,
+              "hasOpenThreats": false,
+              "crossingFlows": [
+                "flow-dev-push",
+                "flow-gh-ci",
+                "flow-ci-registry",
+                "flow-approval-deploy",
+                "flow-registry-prod"
+              ],
+              "containedElements": [
+                "actor-developer",
+                "process-github-repo",
+                "process-ci",
+                "store-ghcr",
+                "store-dockerhub",
+                "process-deploy-workflow",
+                "process-prod-host"
+              ]
+            }
+          },
+          {
+            "id": "actor-developer",
+            "shape": "actor",
+            "zIndex": 1,
+            "position": {
+              "x": 70,
+              "y": 270
+            },
+            "size": {
+              "width": 150,
+              "height": 80
+            },
+            "data": {
+              "type": "tm.Actor",
+              "name": "Developer",
+              "description": "Maintainer creating branches, pull requests, approvals and manual deployments.",
+              "isTrustBoundary": false,
+              "outOfScope": false,
+              "reasonOutOfScope": "",
+              "hasOpenThreats": true,
+              "providesAuthentication": true,
+              "threats": [
+                {
+                  "id": "threat-dev-account-takeover",
+                  "title": "Compromised maintainer account",
+                  "status": "Open",
+                  "severity": "Critical",
+                  "type": "Spoofing",
+                  "description": "If a maintainer account is hijacked, an attacker can push code, approve workflows and trigger release paths.",
+                  "mitigation": "Enforce MFA, branch protection and least privilege repository roles.",
+                  "modelType": "STRIDE"
+                }
+              ]
+            }
+          },
+          {
+            "id": "process-github-repo",
+            "shape": "process",
+            "zIndex": 2,
+            "position": {
+              "x": 300,
+              "y": 260
+            },
+            "size": {
+              "width": 190,
+              "height": 90
+            },
+            "data": {
+              "type": "tm.Process",
+              "name": "GitHub Repository",
+              "description": "Hosts source code, workflows, branch protection and environments.",
+              "isTrustBoundary": false,
+              "outOfScope": false,
+              "reasonOutOfScope": "",
+              "hasOpenThreats": true,
+              "threats": [
+                {
+                  "id": "threat-workflow-tampering",
+                  "title": "Workflow tampering through unreviewed changes",
+                  "status": "Mitigated",
+                  "severity": "High",
+                  "type": "Tampering",
+                  "description": "An attacker may try to alter pipeline steps to bypass scans or leak credentials.",
+                  "mitigation": "Branch protection and required reviews on main reduce this path.",
+                  "modelType": "STRIDE"
+                }
+              ]
+            }
+          },
+          {
+            "id": "process-ci",
+            "shape": "process",
+            "zIndex": 2,
+            "position": {
+              "x": 590,
+              "y": 150
+            },
+            "size": {
+              "width": 210,
+              "height": 100
+            },
+            "data": {
+              "type": "tm.Process",
+              "name": "GitHub Actions CI DevSecOps",
+              "description": "Runs SAST, SCA, secret scanning, DAST, IaC scan, image build and release.",
+              "isTrustBoundary": false,
+              "outOfScope": false,
+              "reasonOutOfScope": "",
+              "hasOpenThreats": true,
+              "threats": [
+                {
+                  "id": "threat-ci-secret-exposure",
+                  "title": "CI secret exposure in logs or malicious steps",
+                  "status": "Open",
+                  "severity": "Critical",
+                  "type": "Information Disclosure",
+                  "description": "If workflows echo secrets or execute hostile code paths, deployment and registry credentials may leak.",
+                  "mitigation": "Use masked GitHub Secrets, protected environments and restrict workflow changes.",
+                  "modelType": "STRIDE"
+                },
+                {
+                  "id": "threat-ci-scan-bypass",
+                  "title": "Security gate bypass",
+                  "status": "Mitigated",
+                  "severity": "High",
+                  "type": "Elevation of Privilege",
+                  "description": "An attacker may try to ship artifacts without passing scans.",
+                  "mitigation": "Required status checks and image publication only from main or signed tags.",
+                  "modelType": "STRIDE"
+                }
+              ]
+            }
+          },
+          {
+            "id": "store-ghcr",
+            "shape": "store",
+            "zIndex": 2,
+            "position": {
+              "x": 910,
+              "y": 120
+            },
+            "size": {
+              "width": 180,
+              "height": 90
+            },
+            "data": {
+              "type": "tm.Store",
+              "name": "GHCR",
+              "description": "Primary registry for versioned SecureVault images.",
+              "isTrustBoundary": false,
+              "outOfScope": false,
+              "reasonOutOfScope": "",
+              "hasOpenThreats": true,
+              "isEncrypted": true,
+              "isSigned": false,
+              "isALog": false,
+              "threats": [
+                {
+                  "id": "threat-registry-poisoning",
+                  "title": "Image poisoning or unauthorized overwrite",
+                  "status": "Open",
+                  "severity": "High",
+                  "type": "Tampering",
+                  "description": "Malicious or unauthorized images in the registry can compromise downstream deployments.",
+                  "mitigation": "Restrict package write permissions, use immutable tags and validate image provenance.",
+                  "modelType": "STRIDE"
+                }
+              ]
+            }
+          },
+          {
+            "id": "store-dockerhub",
+            "shape": "store",
+            "zIndex": 2,
+            "position": {
+              "x": 910,
+              "y": 260
+            },
+            "size": {
+              "width": 180,
+              "height": 90
+            },
+            "data": {
+              "type": "tm.Store",
+              "name": "Docker Hub",
+              "description": "Secondary public registry for versioned SecureVault images.",
+              "isTrustBoundary": false,
+              "outOfScope": false,
+              "reasonOutOfScope": "",
+              "hasOpenThreats": true,
+              "isEncrypted": true,
+              "isSigned": false,
+              "isALog": false,
+              "threats": [
+                {
+                  "id": "threat-public-registry-exposure",
+                  "title": "Excessive exposure of image metadata",
+                  "status": "Open",
+                  "severity": "Medium",
+                  "type": "Information Disclosure",
+                  "description": "Publishing operational images to a public registry increases visibility of technology stack and tags.",
+                  "mitigation": "Publish only intended images and avoid embedding secrets into layers.",
+                  "modelType": "STRIDE"
+                }
+              ]
+            }
+          },
+          {
+            "id": "process-deploy-workflow",
+            "shape": "process",
+            "zIndex": 2,
+            "position": {
+              "x": 590,
+              "y": 430
+            },
+            "size": {
+              "width": 210,
+              "height": 100
+            },
+            "data": {
+              "type": "tm.Process",
+              "name": "Approved Deploy Workflow",
+              "description": "Manual workflow_dispatch deployment using protected environment approval and SSH.",
+              "isTrustBoundary": false,
+              "outOfScope": false,
+              "reasonOutOfScope": "",
+              "hasOpenThreats": true,
+              "threats": [
+                {
+                  "id": "threat-deploy-ssh-key-abuse",
+                  "title": "Abuse of deploy SSH key",
+                  "status": "Open",
+                  "severity": "Critical",
+                  "type": "Elevation of Privilege",
+                  "description": "If the deployment SSH key leaks, an attacker may access the production host directly.",
+                  "mitigation": "Store the key only in protected GitHub secrets, rotate periodically and limit server-side privileges.",
+                  "modelType": "STRIDE"
+                }
+              ]
+            }
+          },
+          {
+            "id": "process-prod-host",
+            "shape": "process",
+            "zIndex": 2,
+            "position": {
+              "x": 1110,
+              "y": 430
+            },
+            "size": {
+              "width": 190,
+              "height": 100
+            },
+            "data": {
+              "type": "tm.Process",
+              "name": "Production Host",
+              "description": "Runs docker compose production stack and pulls approved images from registry.",
+              "isTrustBoundary": false,
+              "outOfScope": false,
+              "reasonOutOfScope": "",
+              "hasOpenThreats": true,
+              "threats": [
+                {
+                  "id": "threat-prod-unhealthy-deploy",
+                  "title": "Broken deployment without detection",
+                  "status": "Mitigated",
+                  "severity": "Medium",
+                  "type": "Denial of Service",
+                  "description": "A deployment may complete while services are unhealthy or restarting.",
+                  "mitigation": "Deployment workflow checks compose status and fails on unhealthy containers.",
+                  "modelType": "STRIDE"
+                }
+              ]
+            }
+          },
+          {
+            "id": "flow-dev-push",
+            "shape": "flow",
+            "zIndex": 3,
+            "source": {
+              "cell": "actor-developer"
+            },
+            "target": {
+              "cell": "process-github-repo"
+            },
+            "vertices": [],
+            "labels": [
+              {
+                "attrs": {
+                  "label": {
+                    "text": "Push and Pull Request"
+                  }
+                }
+              }
+            ],
+            "data": {
+              "type": "tm.Flow",
+              "name": "Developer to GitHub",
+              "description": "Source commits, pull requests and approvals entering the platform.",
+              "outOfScope": false,
+              "isTrustBoundary": false,
+              "reasonOutOfScope": "",
+              "hasOpenThreats": false,
+              "isBidirectional": true,
+              "isEncrypted": true,
+              "isPublicNetwork": true,
+              "protocol": "HTTPS",
+              "trustBoundaryIds": ["tb-dev-platform"],
+              "threats": []
+            }
+          },
+          {
+            "id": "flow-gh-ci",
+            "shape": "flow",
+            "zIndex": 3,
+            "source": {
+              "cell": "process-github-repo"
+            },
+            "target": {
+              "cell": "process-ci"
+            },
+            "vertices": [],
+            "labels": [
+              {
+                "attrs": {
+                  "label": {
+                    "text": "Workflow trigger"
+                  }
+                }
+              }
+            ],
+            "data": {
+              "type": "tm.Flow",
+              "name": "Repository triggers CI",
+              "description": "Pull requests and pushes trigger GitHub Actions workflows.",
+              "outOfScope": false,
+              "isTrustBoundary": false,
+              "reasonOutOfScope": "",
+              "hasOpenThreats": false,
+              "isBidirectional": false,
+              "isEncrypted": true,
+              "isPublicNetwork": false,
+              "protocol": "GitHub internal",
+              "trustBoundaryIds": [],
+              "threats": []
+            }
+          },
+          {
+            "id": "flow-ci-registry",
+            "shape": "flow",
+            "zIndex": 3,
+            "source": {
+              "cell": "process-ci"
+            },
+            "target": {
+              "cell": "store-ghcr"
+            },
+            "vertices": [
+              {
+                "x": 860,
+                "y": 180
+              }
+            ],
+            "labels": [
+              {
+                "attrs": {
+                  "label": {
+                    "text": "Build and push images"
+                  }
+                }
+              }
+            ],
+            "data": {
+              "type": "tm.Flow",
+              "name": "CI to GHCR",
+              "description": "Publishes versioned images after successful pipeline execution.",
+              "outOfScope": false,
+              "isTrustBoundary": false,
+              "reasonOutOfScope": "",
+              "hasOpenThreats": false,
+              "isBidirectional": false,
+              "isEncrypted": true,
+              "isPublicNetwork": true,
+              "protocol": "HTTPS",
+              "trustBoundaryIds": ["tb-dev-platform"],
+              "threats": []
+            }
+          },
+          {
+            "id": "flow-ci-dockerhub",
+            "shape": "flow",
+            "zIndex": 3,
+            "source": {
+              "cell": "process-ci"
+            },
+            "target": {
+              "cell": "store-dockerhub"
+            },
+            "vertices": [],
+            "labels": [
+              {
+                "attrs": {
+                  "label": {
+                    "text": "Publish public tags"
+                  }
+                }
+              }
+            ],
+            "data": {
+              "type": "tm.Flow",
+              "name": "CI to Docker Hub",
+              "description": "Publishes public versioned images to Docker Hub.",
+              "outOfScope": false,
+              "isTrustBoundary": false,
+              "reasonOutOfScope": "",
+              "hasOpenThreats": false,
+              "isBidirectional": false,
+              "isEncrypted": true,
+              "isPublicNetwork": true,
+              "protocol": "HTTPS",
+              "trustBoundaryIds": ["tb-dev-platform"],
+              "threats": []
+            }
+          },
+          {
+            "id": "flow-approval-deploy",
+            "shape": "flow",
+            "zIndex": 3,
+            "source": {
+              "cell": "actor-developer"
+            },
+            "target": {
+              "cell": "process-deploy-workflow"
+            },
+            "vertices": [
+              {
+                "x": 430,
+                "y": 500
+              }
+            ],
+            "labels": [
+              {
+                "attrs": {
+                  "label": {
+                    "text": "Manual approval and dispatch"
+                  }
+                }
+              }
+            ],
+            "data": {
+              "type": "tm.Flow",
+              "name": "Approval to Deploy",
+              "description": "Authorized reviewer approves deployment and selects the image tag.",
+              "outOfScope": false,
+              "isTrustBoundary": false,
+              "reasonOutOfScope": "",
+              "hasOpenThreats": true,
+              "isBidirectional": false,
+              "isEncrypted": true,
+              "isPublicNetwork": true,
+              "protocol": "HTTPS",
+              "trustBoundaryIds": ["tb-dev-platform"],
+              "threats": [
+                {
+                  "id": "threat-approval-abuse",
+                  "title": "Unauthorized deployment approval",
+                  "status": "Open",
+                  "severity": "High",
+                  "type": "Elevation of Privilege",
+                  "description": "A weak environment approval policy could allow unauthorized promotion to production.",
+                  "mitigation": "Use required reviewers in the protected production environment.",
+                  "modelType": "STRIDE"
+                }
+              ]
+            }
+          },
+          {
+            "id": "flow-registry-prod",
+            "shape": "flow",
+            "zIndex": 3,
+            "source": {
+              "cell": "process-deploy-workflow"
+            },
+            "target": {
+              "cell": "process-prod-host"
+            },
+            "vertices": [
+              {
+                "x": 950,
+                "y": 480
+              }
+            ],
+            "labels": [
+              {
+                "attrs": {
+                  "label": {
+                    "text": "SSH deploy and image pull"
+                  }
+                }
+              }
+            ],
+            "data": {
+              "type": "tm.Flow",
+              "name": "Deploy workflow to production",
+              "description": "Logs in to registry, pulls selected tag and applies compose orchestration on the target host.",
+              "outOfScope": false,
+              "isTrustBoundary": false,
+              "reasonOutOfScope": "",
+              "hasOpenThreats": false,
+              "isBidirectional": true,
+              "isEncrypted": true,
+              "isPublicNetwork": true,
+              "protocol": "SSH plus HTTPS",
+              "trustBoundaryIds": ["tb-dev-platform"],
+              "threats": []
+            }
+          }
+        ]
+      }
+    ],
+    "diagramTop": 1,
+    "reviewer": "",
+    "threatTop": 9
+  },
+  "version": "2.4.1"
+}

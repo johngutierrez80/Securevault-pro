@@ -7,6 +7,7 @@ SecureVault esta implementado con arquitectura de microservicios ligeros:
 - Frontend SPA (React + Vite) servido por Nginx.
 - Auth Service (FastAPI): registro y login, emision de JWT.
 - Vault Service (FastAPI): CRUD de secretos por usuario autenticado.
+- Worker Service (Python): proceso asincrono para consumo de eventos de seguridad en segundo plano.
 - PostgreSQL: persistencia de usuarios y secretos.
 - Redis: backend de rate limiting para Vault Service.
 - Docker Compose: orquestacion local.
@@ -14,8 +15,11 @@ SecureVault esta implementado con arquitectura de microservicios ligeros:
 ## 2. Estructura de componentes
 
 - frontend-spa/: interfaz React/Vite.
-- auth-service/: autenticacion y token JWT.
-- vault-service/: gestion de boveda con cifrado.
+- servicios/auth-service/: autenticacion y token JWT.
+- servicios/vault-service/: gestion de boveda con cifrado.
+- servicios/worker-service/: worker asincrono para tareas desacopladas.
+- infraestructura/ansible/: automatizacion IaC de despliegue.
+- orquestacion/kubernetes/: manifests base para K3s/Kubernetes.
 - nginx/: reverse proxy de entrada.
 - docker-compose.yml: despliegue local integrado.
 
@@ -225,8 +229,9 @@ sequenceDiagram
 - Si ENCRYPTION_KEY no esta definida, se genera una clave efimera y los secretos previos pueden no descifrarse tras reinicio.
 - Nginx enruta /auth/ a auth y /vault/ a vault.
 - El frontend consume rutas relativas /auth/_ y /vault/_.
-- Se incluye un modelo DFD importable en OWASP Threat Dragon en docs/07_SecureVault_Threat_Dragon.json.
-- Se incluye un segundo modelo Threat Dragon para CI/CD y supply chain en docs/08_SecureVault_CICD_Threat_Dragon.json.
+- Vault publica eventos asincronos en Redis (jobs:security_events) y worker-service los procesa.
+- Se incluye un modelo DFD importable en OWASP Threat Dragon en threat-model/01_SecureVault_Operativo_Threat_Dragon.json.
+- Se incluye un segundo modelo Threat Dragon para CI/CD y supply chain en threat-model/02_SecureVault_CICD_Threat_Dragon.json.
 
 ## 14. Mejoras futuras sugeridas
 

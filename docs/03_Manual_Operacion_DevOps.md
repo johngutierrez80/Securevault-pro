@@ -24,6 +24,7 @@ docker compose ps
 
 - auth
 - vault
+- worker
 - postgres
 - redis
 - gateway
@@ -36,6 +37,7 @@ En entorno productivo con `docker-compose.prod.yml` también se esperan:
 - loki
 - promtail
 - falco
+- worker
 
 ## 4. Acceso funcional
 
@@ -116,7 +118,7 @@ docker compose exec -T postgres psql -U vault -d vaultdb < backup_vaultdb.sql
 - Mensaje no se pudieron cargar los datos de la bóveda: revisar logs de vault y estado de token.
 - Error de servicio no existe: usar nombres de servicio reales en compose (auth, vault, postgres, redis, gateway).
 - Cambios de frontend no reflejados: recargar con Ctrl+F5 o reconstruir gateway.
-- Error `FileNotFoundError: Config file '.env' not found` en vault-1: Asegurar que vault-service/Dockerfile contiene `RUN touch .env` después de pip install. El archivo es requerido por SlowAPI aunque esté vacío.
+- Error `FileNotFoundError: Config file '.env' not found` en vault-1: Asegurar que servicios/vault-service/Dockerfile contiene `RUN touch .env` después de pip install. El archivo es requerido por SlowAPI aunque esté vacío.
 - Error de permisos en nginx (Permission denied /var/cache/nginx): Asegurar que frontend-spa/Dockerfile NO contiene `USER nginx`. Remover esa línea si existe; el contenedor debe ejecutar como root (user por defecto en nginx:alpine).
 
 ## 9. Shift-left local con pre-commit

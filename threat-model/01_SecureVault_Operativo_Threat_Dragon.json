@@ -1,0 +1,563 @@
+{
+  "summary": {
+    "title": "SecureVault Threat Model",
+    "owner": "SecureVault Team",
+    "description": "Threat model for the SecureVault microservices platform. Scope includes the React SPA frontend, Nginx gateway, Auth Service, Vault Service, PostgreSQL, Redis, GitHub Actions CI/CD, container registries and production deployment path.",
+    "id": 1
+  },
+  "detail": {
+    "contributors": [
+      {
+        "name": "GitHub Copilot"
+      }
+    ],
+    "diagrams": [
+      {
+        "id": 0,
+        "title": "SecureVault Main DFD",
+        "description": "Primary data flow diagram for user authentication, secret storage and supporting infrastructure.",
+        "diagramType": "STRIDE",
+        "version": "2.4.1",
+        "cells": [
+          {
+            "id": "tb-public-private",
+            "shape": "trust-boundary-box",
+            "zIndex": 0,
+            "position": {
+              "x": 30,
+              "y": 20
+            },
+            "size": {
+              "width": 1120,
+              "height": 620
+            },
+            "data": {
+              "type": "tm.BoundaryBox",
+              "name": "Public to Private Boundary",
+              "description": "Trust boundary between end user traffic and internal containerized services.",
+              "isTrustBoundary": true,
+              "hasOpenThreats": false,
+              "crossingFlows": [
+                "flow-login-request",
+                "flow-save-secret-request",
+                "flow-list-secrets-request"
+              ],
+              "containedElements": [
+                "actor-user",
+                "process-gateway",
+                "process-auth",
+                "process-vault",
+                "store-postgres",
+                "store-redis"
+              ]
+            }
+          },
+          {
+            "id": "actor-user",
+            "shape": "actor",
+            "zIndex": 1,
+            "position": {
+              "x": 70,
+              "y": 230
+            },
+            "size": {
+              "width": 150,
+              "height": 80
+            },
+            "data": {
+              "type": "tm.Actor",
+              "name": "User Browser",
+              "description": "Authenticated or unauthenticated end user accessing SecureVault through the SPA.",
+              "isTrustBoundary": false,
+              "outOfScope": false,
+              "reasonOutOfScope": "",
+              "hasOpenThreats": true,
+              "providesAuthentication": false,
+              "threats": [
+                {
+                  "id": "threat-user-session-token-theft",
+                  "title": "Token theft via client-side compromise",
+                  "status": "Open",
+                  "severity": "High",
+                  "type": "Spoofing",
+                  "description": "If the browser runtime is compromised through XSS or malicious extensions, the JWT stored client-side can be abused.",
+                  "mitigation": "Strengthen CSP, reduce XSS surface, consider HttpOnly cookies in future iterations.",
+                  "modelType": "STRIDE"
+                }
+              ]
+            }
+          },
+          {
+            "id": "process-gateway",
+            "shape": "process",
+            "zIndex": 2,
+            "position": {
+              "x": 280,
+              "y": 225
+            },
+            "size": {
+              "width": 180,
+              "height": 90
+            },
+            "data": {
+              "type": "tm.Process",
+              "name": "Nginx Gateway",
+              "description": "Serves the SPA and proxies /auth and /vault requests to backend services.",
+              "isTrustBoundary": false,
+              "outOfScope": false,
+              "reasonOutOfScope": "",
+              "hasOpenThreats": true,
+              "threats": [
+                {
+                  "id": "threat-gateway-http-exposure",
+                  "title": "Traffic interception without TLS",
+                  "status": "Open",
+                  "severity": "High",
+                  "type": "Information Disclosure",
+                  "description": "When deployed without HTTPS termination, credentials and tokens may traverse the network in clear text.",
+                  "mitigation": "Terminate TLS at gateway or ingress in production.",
+                  "modelType": "STRIDE"
+                }
+              ]
+            }
+          },
+          {
+            "id": "process-auth",
+            "shape": "process",
+            "zIndex": 2,
+            "position": {
+              "x": 560,
+              "y": 120
+            },
+            "size": {
+              "width": 180,
+              "height": 90
+            },
+            "data": {
+              "type": "tm.Process",
+              "name": "Auth Service",
+              "description": "FastAPI service for registration, password verification and JWT issuance.",
+              "isTrustBoundary": false,
+              "outOfScope": false,
+              "reasonOutOfScope": "",
+              "hasOpenThreats": true,
+              "threats": [
+                {
+                  "id": "threat-auth-hardcoded-secret",
+                  "title": "Weak secret management",
+                  "status": "Open",
+                  "severity": "Critical",
+                  "type": "Elevation of Privilege",
+                  "description": "If default JWT signing secrets remain hardcoded, forged tokens become feasible after source disclosure.",
+                  "mitigation": "Use protected environment variables or secret manager per environment.",
+                  "modelType": "STRIDE"
+                }
+              ]
+            }
+          },
+          {
+            "id": "process-vault",
+            "shape": "process",
+            "zIndex": 2,
+            "position": {
+              "x": 560,
+              "y": 330
+            },
+            "size": {
+              "width": 180,
+              "height": 90
+            },
+            "data": {
+              "type": "tm.Process",
+              "name": "Vault Service",
+              "description": "FastAPI service for authenticated CRUD of encrypted secrets with Redis-backed rate limiting.",
+              "isTrustBoundary": false,
+              "outOfScope": false,
+              "reasonOutOfScope": "",
+              "hasOpenThreats": true,
+              "threats": [
+                {
+                  "id": "threat-vault-authorization-gap",
+                  "title": "Insufficient authorization enforcement",
+                  "status": "Open",
+                  "severity": "High",
+                  "type": "Elevation of Privilege",
+                  "description": "Token validation exists, but role-based authorization must remain enforced as the system evolves.",
+                  "mitigation": "Keep route-level authorization dependencies and validate claims consistently.",
+                  "modelType": "STRIDE"
+                },
+                {
+                  "id": "threat-vault-rate-limit-bypass",
+                  "title": "Abuse through rate-limit evasion",
+                  "status": "Mitigated",
+                  "severity": "Medium",
+                  "type": "Denial of Service",
+                  "description": "Attackers may attempt repeated requests against the vault API.",
+                  "mitigation": "Redis-backed slowapi limiter is enabled for read and write endpoints.",
+                  "modelType": "STRIDE"
+                }
+              ]
+            }
+          },
+          {
+            "id": "store-postgres",
+            "shape": "store",
+            "zIndex": 2,
+            "position": {
+              "x": 860,
+              "y": 115
+            },
+            "size": {
+              "width": 180,
+              "height": 90
+            },
+            "data": {
+              "type": "tm.Store",
+              "name": "PostgreSQL",
+              "description": "Primary persistence store for users and encrypted secrets.",
+              "isTrustBoundary": false,
+              "outOfScope": false,
+              "reasonOutOfScope": "",
+              "hasOpenThreats": true,
+              "isEncrypted": false,
+              "isSigned": false,
+              "isALog": false,
+              "threats": [
+                {
+                  "id": "threat-db-backup-exposure",
+                  "title": "Sensitive data disclosure from backups",
+                  "status": "Open",
+                  "severity": "High",
+                  "type": "Information Disclosure",
+                  "description": "Database backups or snapshots can expose user and secret metadata if stored without protection.",
+                  "mitigation": "Encrypt backups and restrict access to backup artifacts.",
+                  "modelType": "STRIDE"
+                }
+              ]
+            }
+          },
+          {
+            "id": "store-redis",
+            "shape": "store",
+            "zIndex": 2,
+            "position": {
+              "x": 860,
+              "y": 335
+            },
+            "size": {
+              "width": 180,
+              "height": 90
+            },
+            "data": {
+              "type": "tm.Store",
+              "name": "Redis",
+              "description": "Transient store used for rate limiting and future asynchronous workloads.",
+              "isTrustBoundary": false,
+              "outOfScope": false,
+              "reasonOutOfScope": "",
+              "hasOpenThreats": true,
+              "isEncrypted": false,
+              "isSigned": false,
+              "isALog": false,
+              "threats": [
+                {
+                  "id": "threat-redis-open-network",
+                  "title": "Unauthorized access to Redis",
+                  "status": "Open",
+                  "severity": "Medium",
+                  "type": "Tampering",
+                  "description": "If Redis is exposed beyond the private network, an attacker can tamper with limiter data or abuse future queues.",
+                  "mitigation": "Keep Redis on private network only and add authentication in hardened environments.",
+                  "modelType": "STRIDE"
+                }
+              ]
+            }
+          },
+          {
+            "id": "flow-login-request",
+            "shape": "flow",
+            "zIndex": 3,
+            "source": {
+              "cell": "actor-user"
+            },
+            "target": {
+              "cell": "process-gateway"
+            },
+            "vertices": [],
+            "labels": [
+              {
+                "attrs": {
+                  "label": {
+                    "text": "Login and SPA access"
+                  }
+                }
+              }
+            ],
+            "data": {
+              "type": "tm.Flow",
+              "name": "Login Request",
+              "description": "User sends credentials and requests frontend assets.",
+              "outOfScope": false,
+              "isTrustBoundary": false,
+              "reasonOutOfScope": "",
+              "hasOpenThreats": true,
+              "isBidirectional": true,
+              "isEncrypted": false,
+              "isPublicNetwork": true,
+              "protocol": "HTTP/HTTPS",
+              "trustBoundaryIds": ["tb-public-private"],
+              "threats": [
+                {
+                  "id": "threat-login-flow-cleartext",
+                  "title": "Credentials exposed in transit",
+                  "status": "Open",
+                  "severity": "High",
+                  "type": "Information Disclosure",
+                  "description": "Credentials are at risk if the flow runs over plain HTTP.",
+                  "mitigation": "Enforce HTTPS in production.",
+                  "modelType": "STRIDE"
+                }
+              ]
+            }
+          },
+          {
+            "id": "flow-gateway-auth",
+            "shape": "flow",
+            "zIndex": 3,
+            "source": {
+              "cell": "process-gateway"
+            },
+            "target": {
+              "cell": "process-auth"
+            },
+            "vertices": [],
+            "labels": [
+              {
+                "attrs": {
+                  "label": {
+                    "text": "Auth API proxy"
+                  }
+                }
+              }
+            ],
+            "data": {
+              "type": "tm.Flow",
+              "name": "Gateway to Auth",
+              "description": "Proxy flow for registration and login requests.",
+              "outOfScope": false,
+              "isTrustBoundary": false,
+              "reasonOutOfScope": "",
+              "hasOpenThreats": false,
+              "isBidirectional": true,
+              "isEncrypted": false,
+              "isPublicNetwork": false,
+              "protocol": "HTTP",
+              "trustBoundaryIds": [],
+              "threats": []
+            }
+          },
+          {
+            "id": "flow-auth-db",
+            "shape": "flow",
+            "zIndex": 3,
+            "source": {
+              "cell": "process-auth"
+            },
+            "target": {
+              "cell": "store-postgres"
+            },
+            "vertices": [],
+            "labels": [
+              {
+                "attrs": {
+                  "label": {
+                    "text": "User lookup and persistence"
+                  }
+                }
+              }
+            ],
+            "data": {
+              "type": "tm.Flow",
+              "name": "Auth Database Flow",
+              "description": "Reads and writes user records to PostgreSQL.",
+              "outOfScope": false,
+              "isTrustBoundary": false,
+              "reasonOutOfScope": "",
+              "hasOpenThreats": false,
+              "isBidirectional": true,
+              "isEncrypted": false,
+              "isPublicNetwork": false,
+              "protocol": "PostgreSQL",
+              "trustBoundaryIds": [],
+              "threats": []
+            }
+          },
+          {
+            "id": "flow-save-secret-request",
+            "shape": "flow",
+            "zIndex": 3,
+            "source": {
+              "cell": "actor-user"
+            },
+            "target": {
+              "cell": "process-gateway"
+            },
+            "vertices": [
+              {
+                "x": 240,
+                "y": 380
+              }
+            ],
+            "labels": [
+              {
+                "attrs": {
+                  "label": {
+                    "text": "Secret CRUD request with JWT"
+                  }
+                }
+              }
+            ],
+            "data": {
+              "type": "tm.Flow",
+              "name": "Vault Request",
+              "description": "Authenticated user sends CRUD requests for secrets using bearer token.",
+              "outOfScope": false,
+              "isTrustBoundary": false,
+              "reasonOutOfScope": "",
+              "hasOpenThreats": true,
+              "isBidirectional": true,
+              "isEncrypted": false,
+              "isPublicNetwork": true,
+              "protocol": "HTTP/HTTPS",
+              "trustBoundaryIds": ["tb-public-private"],
+              "threats": [
+                {
+                  "id": "threat-vault-jwt-replay",
+                  "title": "JWT replay abuse",
+                  "status": "Open",
+                  "severity": "Medium",
+                  "type": "Repudiation",
+                  "description": "A stolen bearer token may be replayed until expiration if not otherwise constrained.",
+                  "mitigation": "Reduce token lifetime, add stronger session protections and audit events.",
+                  "modelType": "STRIDE"
+                }
+              ]
+            }
+          },
+          {
+            "id": "flow-gateway-vault",
+            "shape": "flow",
+            "zIndex": 3,
+            "source": {
+              "cell": "process-gateway"
+            },
+            "target": {
+              "cell": "process-vault"
+            },
+            "vertices": [],
+            "labels": [
+              {
+                "attrs": {
+                  "label": {
+                    "text": "Vault API proxy"
+                  }
+                }
+              }
+            ],
+            "data": {
+              "type": "tm.Flow",
+              "name": "Gateway to Vault",
+              "description": "Proxy flow for authenticated vault operations.",
+              "outOfScope": false,
+              "isTrustBoundary": false,
+              "reasonOutOfScope": "",
+              "hasOpenThreats": false,
+              "isBidirectional": true,
+              "isEncrypted": false,
+              "isPublicNetwork": false,
+              "protocol": "HTTP",
+              "trustBoundaryIds": [],
+              "threats": []
+            }
+          },
+          {
+            "id": "flow-vault-db",
+            "shape": "flow",
+            "zIndex": 3,
+            "source": {
+              "cell": "process-vault"
+            },
+            "target": {
+              "cell": "store-postgres"
+            },
+            "vertices": [],
+            "labels": [
+              {
+                "attrs": {
+                  "label": {
+                    "text": "Encrypted secret persistence"
+                  }
+                }
+              }
+            ],
+            "data": {
+              "type": "tm.Flow",
+              "name": "Vault to Database",
+              "description": "Stores and retrieves encrypted secrets.",
+              "outOfScope": false,
+              "isTrustBoundary": false,
+              "reasonOutOfScope": "",
+              "hasOpenThreats": false,
+              "isBidirectional": true,
+              "isEncrypted": false,
+              "isPublicNetwork": false,
+              "protocol": "PostgreSQL",
+              "trustBoundaryIds": [],
+              "threats": []
+            }
+          },
+          {
+            "id": "flow-list-secrets-request",
+            "shape": "flow",
+            "zIndex": 3,
+            "source": {
+              "cell": "process-vault"
+            },
+            "target": {
+              "cell": "store-redis"
+            },
+            "vertices": [],
+            "labels": [
+              {
+                "attrs": {
+                  "label": {
+                    "text": "Rate-limit state"
+                  }
+                }
+              }
+            ],
+            "data": {
+              "type": "tm.Flow",
+              "name": "Vault to Redis",
+              "description": "Reads and writes limiter counters and future asynchronous coordination data.",
+              "outOfScope": false,
+              "isTrustBoundary": false,
+              "reasonOutOfScope": "",
+              "hasOpenThreats": false,
+              "isBidirectional": true,
+              "isEncrypted": false,
+              "isPublicNetwork": false,
+              "protocol": "Redis",
+              "trustBoundaryIds": [],
+              "threats": []
+            }
+          }
+        ]
+      }
+    ],
+    "diagramTop": 1,
+    "reviewer": "",
+    "threatTop": 8
+  },
+  "version": "2.4.1"
+}

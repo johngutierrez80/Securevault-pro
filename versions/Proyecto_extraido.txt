@@ -1,0 +1,196 @@
+Proyecto: SecureVault API
+(un gestor de credenciales/secretos seguros como microservicios)
+¿Por qué se selecciona para la materia?
+Ciberseguridad: Encriptación AES-256 en reposo, JWT + OAuth2 para auth, validación de inputs (OWASP), rate-limiting, logging de auditoría, secrets management (no hardcodeados), HTTPS/TLS.
+Cloud Security: Simula un entorno cloud con variables de entorno (Docker secrets), políticas de IAM básicas y encriptación de datos.
+DevOps: Docker + Docker Compose (multi-contenedor), CI/CD básico con GitHub Actions, Dockerfile optimizados, .dockerignore, healthchecks.
+Microservicios: 2 servicios independientes (puedes escalar a 3 si quieres más puntos).
+Funcional y publicable: API REST consumible por cualquier frontend/Postman, se publica en Docker Hub y se corre con un solo comando.
+Sencillo y rápido: Todo en Python (FastAPI) o Node.js (Express) – elige lo que ya domines. Base de datos ligera (SQLite o PostgreSQL).
+Arquitectura (muy simple )
+Auth Service (puerto 8001)
+Registro / Login
+Genera JWT
+Protege los endpoints del Vault
+Vault Service (puerto 8000)
+CRUD de secretos (username/password/notas)
+Encripta/desencripta con clave por usuario
+Rate limit + auditoría
+Frontend opcional: una página HTML simple con fetch (o usa Swagger de FastAPI). Todo orquestado con Docker Compose (app + db + opcional Redis para rate-limit).
+Stack Técnico (elige uno – ambos son rápidos)
+Opción A – Recomendada (más moderna y con mejor puntuación en ciberseguridad)
+Python + FastAPI + Pydantic + JWT (PyJWT)
+SQLAlchemy + Alembic (migraciones)
+Cryptography (AES-GCM)
+PostgreSQL (o SQLite para simplicidad)
+Docker + Docker Compose
+GitHub Actions (build + test + push a Docker Hub)
+Opción B
+Node.js + Express + TypeScript
+Prisma + PostgreSQL
+jsonwebtoken + crypto (Node)
+Requerimientos básicos de desarrollo que cubre automáticamente
+README.md detallado (con diagramas de arquitectura, cómo correr, seguridad implementada)
+Tests unitarios (pytest o Jest)
+Dockerfiles multi-stage (imagen < 100 MB)
+.env.example + docker secrets
+Swagger/OpenAPI documentación automática
+CI/CD básico (test + lint + build)
+Logs estructurados + healthcheck endpoints
+Documentación y manuales mínimos recomendados (lo más común en entregas 2025-2026)
+Ordenados de más crítico/obligatorio a complementario:
+Estructura recomendada del Informe Técnico Principal (el que más pesa en la nota)
+Portada
+Título: SecureVault API – Gestor Seguro de Secretos en Microservicios
+Tu nombre, código de estudiante, asignatura, profesor, fecha
+Resumen Ejecutivo (1 página)
+Objetivo, tecnologías, principales medidas de seguridad implementadas
+Introducción
+Contexto (por qué un gestor de secretos seguro en cloud/DevOps)
+Objetivos generales y específicos
+Marco Teórico / Justificación (breve)
+OWASP Top 10, principios Zero Trust, DevSecOps, cifrado en reposo/transito
+Arquitectura de la Solución
+Diagrama (microservicios, DB, flujos de auth y encriptación)
+Tecnologías y versiones
+Desarrollo e Implementación
+Estructura de carpetas
+Decisiones clave de seguridad (AES-256-GCM por usuario, JWT con RS256 o HS256 fuerte, no hardcode secrets, etc.)
+Dockerización y DevOps
+Explicación Dockerfile multi-stage
+docker-compose.yml (services, networks, volumes, secrets)
+Buenas prácticas aplicadas (non-root user, HEALTHCHECK, .dockerignore)
+Medidas de Seguridad Implementadas (lo más importante para tu materia)
+Tabla con: Amenaza → Control → Cómo lo implementaste Ejemplos:
+Inyección SQL → Prepared statements + SQLAlchemy
+Exposición de secrets → Docker secrets + variables de entorno
+Ataques de fuerza bruta → Rate limiting (slowapi o similar)
+Confidencialidad → Encriptación AES-GCM con clave derivada de contraseña del usuario
+Despliegue y Pruebas
+Instrucciones paso a paso
+Evidencia: capturas de Swagger, logs, contenedores corriendo
+Conclusiones, lecciones aprendidas y trabajo futuro
+Anexos
+Código de encriptación clave
+Colección Postman
+Resultados de escaneo de imágenes Docker
+Consejos prácticos para no perder puntos
+Usa plantillas institucionales si tu universidad las tiene (portada, tipo de letra, márgenes).
+Incluye capturas de pantalla reales: docker ps, Swagger UI, logs de autenticación fallida, etc.
+Menciona estándares: ISO 27001 (controles A.8, A.14), OWASP API Security, CIS Docker Benchmarks.
+Sube todo a un repositorio público o privado en GitHub/GitLab con licencia MIT o similar.
+Genera el OpenAPI/Swagger automáticamente (FastAPI lo hace solo) y expórtalo como YAML para anexarlo.
+Opción A – Recomendada (Python + FastAPI)
+Más moderna, ligera, excelente documentación automática (Swagger), y muy valorada en entornos DevSecOps/Cloud 2025–2026.
+Tecnologías principales:
+Backend: Python 3.11+ + FastAPI + Uvicorn
+Autenticación: JWT (PyJWT) + OAuth2 Password Bearer
+Encriptación: cryptography (AES-256-GCM con clave derivada por usuario via PBKDF2)
+Base de datos: PostgreSQL (o SQLite para simplicidad inicial)
+Rate limiting: slowapi
+Logging: structlog o logging JSON
+Docker: multi-stage build, non-root user, HEALTHCHECK
+Orquestación: Docker Compose (auth + vault + db)
+Estructura de carpetas básica (para el repo):
+text
+Ventajas para tu materia:
+Swagger/OpenAPI automático → manual de API listo en /docs
+Fácil integrar OWASP checks (Pydantic validación estricta)
+Imágenes livianas (~80-120 MB)
+Muy buena puntuación en "modernidad" y "seguridad por diseño"
+Tiempo estimado: 5–8 días si ya sabes algo de Python/FastAPI.
+Opción B – Node.js + Express (con TypeScript opcional)
+Más tradicional en algunos programas, pero igual de funcional y seguro si se implementa bien.
+Tecnologías principales:
+Backend: Node.js 20+ + Express
+Autenticación: jsonwebtoken + bcryptjs
+Encriptación: crypto (AES-256-GCM nativo de Node)
+ORM: Prisma (PostgreSQL) o Sequelize
+Rate limiting: express-rate-limit
+Logging: winston + JSON format
+Docker: multi-stage, non-root (node user)
+Orquestación: Docker Compose (igual que arriba)
+Estructura de carpetas básica:
+Ventajas para tu materia:
+Fácil de entender si vienes de entornos más "clásicos"
+Crypto nativo de Node → menos dependencias externas
+Prisma genera migraciones automáticas → bueno para demo de DevOps
+Puedes usar TypeScript para + puntos en "calidad de código"
+Tiempo estimado: Similar, 6–9 días (un poco más si no usas TypeScript).
+Comparación rápida para decidir
+1. Esquema detallado del Informe Técnico / Memoria del Proyecto
+(15–25 páginas aprox. en Word/PDF – copia esto como índice y expande cada sección con tu contenido)
+PORTADA
+Título: SecureVault API – Gestor Seguro de Secretos como Microservicios en Entorno Cloud con Enfoque DevSecOps
+Autor: John [Tu Apellido]
+Código estudiante: [tu código]
+Programa: Especialización en Ciberseguridad
+Asignatura: Seguridad de Entornos Cloud y DevOps
+Universidad: [Nombre de tu universidad]
+Director / Tutor: [Nombre]
+Bogotá D.C., [Mes] 2026
+RESUMEN EJECUTIVO (1 página) Breve overview: objetivo, tecnologías, principales controles de seguridad implementados (encriptación AES-256-GCM, JWT, rate-limiting, Docker non-root, etc.), beneficios en términos de confidencialidad, integridad y disponibilidad (CIA triad), y alineación con estándares NIST/ISO.
+ÍNDICE
+INTRODUCCIÓN 1.1. Contexto y justificación del proyecto 1.2. Problema que resuelve (gestión segura de secretos en entornos cloud/DevOps) 1.3. Objetivos
+General
+Específicos 1.4. Alcance y limitaciones
+MARCO TEÓRICO Y NORMATIVO 2.1. Principios de ciberseguridad (CIA triad, Zero Trust) 2.2. Estándares y marcos relevantes
+NIST Cybersecurity Framework (Identify, Protect, Detect, Respond, Recover)
+ISO/IEC 27001:2022 (controles A.5 a A.18) y 27002
+OWASP Top 10 y OWASP API Security Top 10
+CIS Docker Benchmarks y DevSecOps best practices 2.3. Amenazas comunes en microservicios cloud (OWASP, MITRE ATT&CK)
+ARQUITETURA DE LA SOLUCIÓN 3.1. Diagrama de arquitectura (incluir imagen de Draw.io o similar) 3.2. Componentes: Auth Service, Vault Service, Base de datos 3.3. Flujos principales: Registro/Login → JWT → CRUD secretos encriptados 3.4. Tecnologías y versiones utilizadas
+IMPLEMENTACIÓN Y DESARROLLO 4.1. Estructura del código y repositorio 4.2. Autenticación y autorización (JWT con expiración corta, refresh tokens opcional) 4.3. Encriptación de secretos (AES-256-GCM con clave derivada PBKDF2 por usuario) 4.4. Validaciones y protecciones OWASP (input sanitization, CORS, etc.) 4.5. Rate limiting y logging de auditoría
+DOCKERIZACIÓN Y DEVOPS 5.1. Dockerfile multi-stage (non-root user, minimizar capas) 5.2. docker-compose.yml (networks, volumes, secrets, healthchecks) 5.3. Buenas prácticas aplicadas (CIS Docker, .dockerignore, no hardcode secrets) 5.4. CI/CD básico (GitHub Actions: build, test, push Docker Hub)
+ANÁLISIS DE SEGURIDAD Y CONTROLES IMPLEMENTADOS 6.1. Tabla de amenazas vs controles (ejemplo abajo)
+6.2. Resultados de escaneos (Trivy, Docker Scout, Bandit/pylint si usas Python) 6.3. Recomendaciones de mejora futura
+DESPLIEGUE Y PRUEBAS 7.1. Manual de instalación paso a paso (local y Docker) 7.2. Evidencias: capturas de Swagger, docker ps, logs de auth fallida 7.3. Colección Postman para pruebas
+CONCLUSIONES Y LECCIONES APRENDIDAS 8.1. Cumplimiento de objetivos 8.2. Aportes a la ciberseguridad cloud/DevOps 8.3. Trabajo futuro (audit service, K8s, Terraform, rotación de claves)
+BIBLIOGRAFÍA (APA o norma de tu uni)
+ANEXOS
+Código clave de encriptación
+Diagrama Draw.io fuente
+OpenAPI YAML exportado
+Resultados escaneo vulnerabilidades
+Template completo de README.md (para tu repo GitHub/GitLab)
+Accede a:
+Swagger Auth: http://localhost:8001/docs
+Swagger Vault: http://localhost:8002/docs (usa JWT del auth)
+Despliegue en producción (simulado)
+Usa Docker secrets para JWT_SECRET y DB_PASSWORD
+Publica imágenes: docker push tuusuario/securevault-auth:latest
+Medidas de seguridad implementadas
+Ver sección 6 del informe técnico para tabla completa.
+Escaneos de seguridad
+Trivy en imágenes Docker: [captura o resultados aquí]
+Bandit (Python): 0 high issues
+Licencia
+MIT
+Autor
+XXXXX
+# | Documento / Manual | ¿Obligatorio en la mayoría? | Propósito principal en tu materia | Formato sugerido | Extensión aproximada
+1 | Informe Técnico / Memoria del Proyecto | Sí (casi siempre el principal) | Explicar qué hiciste, por qué, arquitectura, decisiones de seguridad | PDF o Word + índice + portada | 15–30 páginas
+2 | README.md (en GitHub o repo) | Sí | Guía rápida para clonar, instalar, ejecutar y entender el proyecto | Markdown (GitHub flavored) | —
+3 | Diagrama de Arquitectura | Sí | Mostrar microservicios, flujos, Docker Compose, puertos, seguridad | Draw.io / Lucidchart / Excalidraw exportado a PNG/PDF | 1–2 imágenes
+4 | Manual de Instalación / Despliegue (Deployment Guide) | Sí | Paso a paso: local, Docker, producción simulada (cloud) | Sección en README + archivo separado (MD o PDF) | 3–8 páginas
+5 | Manual de Usuario / API Documentation | Sí (muy valorado en API) | Cómo consumir la API (endpoints, auth, ejemplos) | Swagger/OpenAPI + sección en README | Automático + ejemplos
+6 | Análisis de Seguridad / DevSecOps Report | Sí (clave en tu materia) | Amenazas OWASP, controles implementados, encriptación, JWT, rate-limit, etc. | Sección en informe + tabla | 4–10 páginas
+7 | Dockerfile(s) + docker-compose.yml comentados | Sí | Explicar cada línea relevante (seguridad: user no-root, multi-stage) | Comentarios inline + explicación en README | —
+8 | Lista de Vulnerabilidades mitigadas / Escaneo | Recomendado → muy valorado | Resultados de docker scan, Trivy, Snyk o manual | Tabla o capturas en informe | 1–2 páginas
+9 | Pruebas (Test Report) | Recomendado | Cobertura unitaria + Postman collection o curl examples | Carpeta /docs o sección README | —
+10 | Hoja de Vida del Proyecto / Bitácora | A veces | Decisiones, problemas encontrados, lecciones aprendidas | Sección final del informe | 2–4 páginas
+Aspecto | Opción A (FastAPI) | Opción B (Express/Node)
+Velocidad de desarrollo | Más rápido (menos boilerplate) | Un poco más manual
+Documentación API automática | Excelente (Swagger UI integrado) | Buena (con swagger-jsdoc o similar)
+Encriptación | cryptography (muy robusta) | crypto nativo (igual de segura)
+Comunidad / ejemplos cloud | Muy fuerte en DevOps 2025+ | Sólida, pero menos "hype" actual
+Tamaño imagen Docker | ~80-150 MB | ~120-200 MB
+Puntuación esperada en ciber | Alta (moderno + OWASP fácil) | Alta si documentas bien controles
+Recomendado si... | Quieres destacar en Cloud/DevOps | Prefieres JS o ya tienes experiencia
+Amenaza (OWASP/NIST) | Control implementado | Estándar alineado | Evidencia en el proyecto
+Exposición de credenciales | Secrets en variables de entorno/Docker secrets | NIST Protect / ISO A.8.2 | .env.example + no commits de .env
+Inyección (SQL/NoSQL) | Prepared statements + ORM | OWASP A03 | SQLAlchemy/Prisma
+Broken Authentication | JWT HS256 fuerte + expiración | OWASP API1 | PyJWT / jsonwebtoken
+Sensitive Data Exposure | Encriptación AES-256-GCM en reposo | NIST / ISO A.8.24 | cryptography / crypto module
+Denial of Service | Rate limiting por IP/usuario | OWASP API4 | slowapi / express-rate-limit
+Logging & Monitoring | Logs estructurados JSON + audit trail | NIST Detect | structlog / winston
