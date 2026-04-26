@@ -59,11 +59,25 @@ Notas:
 Requisitos:
 
 - Docker + Docker Compose
+- Conexion a internet para descargar las imagenes publicadas en Docker Hub
 - Puertos libres: 3000, 8001, 8002, 5432, 6379
 
-Arranque local:
+Ejecucion local recomendada  usando imagenes publicadas:
 
 ```powershell
+.\scripts\pull-images.ps1
+$env:IMAGE_TAG = "v1.0.0"
+docker compose -f docker-compose.prod.yml up -d
+docker compose -f docker-compose.prod.yml ps
+```
+
+Nota: este flujo se ejecuta localmente en el equipo, pero reutiliza las imagenes publicadas en Docker Hub en lugar de reconstruir los servicios desde el codigo fuente.
+
+Arranque local por build desde codigo fuente:
+
+```powershell
+.\scripts\pull-images.ps1
+$env:IMAGE_TAG = "v1.0.0"
 docker compose up -d --build
 docker compose ps
 ```
@@ -117,6 +131,7 @@ Estado esperado de entrega:
 
 - Repositorio GitHub publico con codigo, pipelines, IaC y documentacion.
 - Imagenes publicadas y versionadas en Docker Hub/GHCR.
+- Script de apoyo para descarga de imagenes: scripts/pull-images.ps1.
 - Informe tecnico en PDF.
 - Video de demostracion del ciclo completo.
 

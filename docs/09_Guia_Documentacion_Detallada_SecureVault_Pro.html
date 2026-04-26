@@ -1,0 +1,614 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>SecureVault Pro - Guia Detallada</title>
+  <style>
+    @page { size: A4; margin: 20mm 16mm; }
+    body { font-family: 'Segoe UI', Tahoma, Arial, sans-serif; color: #1f2937; line-height: 1.5; }
+    h1, h2, h3, h4 { color: #0b3b66; margin-top: 1.2em; }
+    h1 { font-size: 28px; border-bottom: 2px solid #0b3b66; padding-bottom: 8px; }
+    h2 { font-size: 22px; border-bottom: 1px solid #d1d5db; padding-bottom: 5px; }
+    h3 { font-size: 18px; }
+    p, li { font-size: 12.5px; }
+    table { border-collapse: collapse; width: 100%; margin: 10px 0 16px; font-size: 11.5px; }
+    th, td { border: 1px solid #cbd5e1; padding: 8px; vertical-align: top; }
+    th { background: #e5eef7; }
+    code { background: #f3f4f6; padding: 2px 4px; border-radius: 4px; }
+    pre code { display: block; padding: 10px; overflow-x: auto; }
+    hr { border: none; border-top: 1px solid #cbd5e1; margin: 22px 0; }
+    .mermaid { background: #ffffff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 10px; margin: 12px 0; }
+    img { max-width: 100%; height: auto; page-break-inside: avoid; display: block; margin: 8px 0 16px; border: 1px solid #e5e7eb; }
+  </style>
+  <script type="module">
+    import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+    mermaid.initialize({ startOnLoad: true, theme: 'default', securityLevel: 'loose' });
+  </script>
+</head>
+<body>
+<h1 id="securevault-pro">SecureVault Pro</h1>
+<h2 id="guia-de-documentacion-detallada-y-analisis-tecnico">Guia de Documentacion Detallada y Analisis Tecnico</h2>
+<p><strong>Proyecto:</strong> SecureVault Pro<br />
+<strong>Repositorio:</strong> https://github.com/johngutierrez80/Securevault-pro<br />
+<strong>Fecha de analisis:</strong> 18 de abril de 2026<br />
+<strong>Version del documento:</strong> 1.0<br />
+<strong>Tipo de entrega:</strong> Guia explicativa academica con enfoque DevSecOps</p>
+<hr />
+<h2 id="portada">Portada</h2>
+<p><strong>Titulo completo:</strong><br />
+SecureVault Pro: Arquitectura, Politicas de Seguridad, Herramientas DevSecOps y Analisis Profundo de Implementacion</p>
+<p><strong>Descripcion:</strong><br />
+Este documento presenta un analisis tecnico y pedagogico del proyecto SecureVault Pro, explicando en detalle la arquitectura de microservicios, el rol de cada modulo, las politicas de seguridad aplicadas y la forma en que las herramientas DevSecOps vigilan y refuerzan la proteccion del sistema a lo largo de todo el ciclo de vida del software.</p>
+<p><strong>Publico objetivo:</strong><br />
+- Lectores academicos (especializacion en ciberseguridad y DevSecOps)
+- Evaluadores tecnicos
+- Equipos de desarrollo que busquen referencia de buenas practicas</p>
+<hr />
+<h2 id="tabla-de-contenido">Tabla de Contenido</h2>
+<ol>
+<li>Introduccion y alcance</li>
+<li>Metodologia de analisis</li>
+<li>Vision general de la arquitectura</li>
+<li>Desglose profundo por componente</li>
+<li>Politicas de seguridad implementadas y que vigilan</li>
+<li>Herramientas de seguridad y monitoreo (analisis academico profundo)</li>
+<li>Pipeline DevSecOps de extremo a extremo</li>
+<li>Riesgos identificados, mitigaciones y brechas residuales</li>
+<li>Evidencia visual: capturas de pantalla por seccion</li>
+<li>Conclusiones y recomendaciones</li>
+<li>Anexos</li>
+</ol>
+<hr />
+<h2 id="1-introduccion-y-alcance">1. Introduccion y alcance</h2>
+<p>SecureVault Pro es una plataforma para gestion segura de secretos construida como laboratorio real de DevSecOps. El proyecto integra microservicios en Python/FastAPI, frontend en React/Vite, datos en PostgreSQL, eventos y control de tasa con Redis, enrutamiento por Nginx, despliegue contenerizado, pipeline CI/CD con multiples controles de seguridad y una capa operativa de observabilidad y deteccion de amenazas.</p>
+<p>El alcance de esta guia cubre:</p>
+<ul>
+<li>Que hace cada modulo del sistema.</li>
+<li>Con que herramientas trabaja cada modulo.</li>
+<li>Como se implementan las politicas de seguridad en codigo y configuracion.</li>
+<li>Que herramientas revisan cada fase del ciclo Plan-Code-Build-Test-Release-Operate.</li>
+<li>Que riesgos se vigilan, cuales se mitigan y que recomendaciones quedan para produccion robusta.</li>
+</ul>
+<hr />
+<h2 id="2-metodologia-de-analisis">2. Metodologia de analisis</h2>
+<p>El analisis se construye sobre evidencia directa del repositorio:</p>
+<ul>
+<li>Documentacion tecnica y de seguridad en <code>docs/</code>.</li>
+<li>Configuracion de despliegue en <code>docker-compose.yml</code> y <code>docker-compose.prod.yml</code>.</li>
+<li>Workflows de CI/CD en <code>ci-devsecops.yml</code>, <code>dast-zap.yml</code>, <code>container-release.yml</code> y <code>deploy-production.yml</code>.</li>
+<li>Estandarizacion de chequeos locales en <code>trunk.yaml</code> y archivos de configuracion de linters asociados.</li>
+<li>Configuracion de monitoreo en <code>monitoring/</code>.</li>
+<li>Codigo de microservicios en <code>servicios/</code>.</li>
+<li>Frontend SPA en <code>frontend-spa/</code>.</li>
+<li>Modelos de amenazas en <code>threat-model/</code>.</li>
+</ul>
+<p>Enfoque pedagogico aplicado en cada seccion:</p>
+<ul>
+<li>Definicion simple.</li>
+<li>Funcion operativa real.</li>
+<li>Implementacion puntual en el repositorio.</li>
+<li>Politica de seguridad o riesgo que vigila.</li>
+<li>Explicacion educativa con analogia practica.</li>
+</ul>
+<hr />
+<h2 id="3-vision-general-de-la-arquitectura">3. Vision general de la arquitectura</h2>
+<h3 id="31-diagrama-general-del-sistema">3.1 Diagrama general del sistema</h3>
+<div class="mermaid">flowchart LR
+  U[Usuario] --&gt; G[Gateway Nginx :3000]
+  G --&gt; F[Frontend SPA React/Vite]
+  G --&gt; A[Auth Service FastAPI :8001]
+  G --&gt; V[Vault Service FastAPI :8002]
+
+  A --&gt; P[(PostgreSQL)]
+  V --&gt; P
+  V --&gt; R[(Redis)]
+  W[Worker Service] --&gt; R
+  W --&gt; P
+
+  subgraph Observabilidad
+    PR[Prometheus]
+    GR[Grafana]
+    LO[Loki]
+    PT[Promtail]
+    FA[Falco]
+  end
+
+  PR --&gt; GR
+  PT --&gt; LO</div>
+<h3 id="32-funcionamiento-en-lenguaje-simple">3.2 Funcionamiento en lenguaje simple</h3>
+<p>El sistema actua como una boveda digital: el usuario entra por una unica puerta (Gateway), se autentica (Auth Service), guarda y consulta secretos cifrados (Vault Service), y tareas de fondo como expiracion o eventos se procesan sin bloquear la aplicacion principal (Worker). Todo ocurre bajo vigilancia de herramientas de seguridad y monitoreo.</p>
+<hr />
+<h2 id="4-desglose-profundo-por-componente">4. Desglose profundo por componente</h2>
+<h2 id="41-frontend-spa-react-vite">4.1 Frontend SPA (React + Vite)</h2>
+<p><strong>Funcion principal:</strong><br />
+Interfaz de usuario para registro, login y gestion de secretos.</p>
+<p><strong>Herramientas usadas:</strong><br />
+- React para componentes y estado.
+- Vite para build rapido y empaquetado.
+- Nginx para servir archivos estaticos en el contenedor frontend.</p>
+<p><strong>Implementacion en el repositorio:</strong><br />
+- Carpeta <code>frontend-spa/</code>.
+- Flujo de login en <code>frontend-spa/src/pages/LoginPage.jsx</code>.
+- El token se guarda en <code>localStorage</code> tras autenticacion exitosa.</p>
+<p><strong>Politicas de seguridad relacionadas:</strong>
+- Control de acceso basado en token JWT.
+- Riesgo documentado por almacenamiento de token en localStorage.</p>
+<p><strong>Explicacion educativa profunda:</strong><br />
+El frontend es la capa de atencion al usuario, no el lugar donde vive la seguridad central. Su rol es solicitar credenciales y consumir APIs protegidas. Cuando guarda un token en localStorage, obtiene simplicidad de implementacion, pero aumenta exposicion ante XSS. Por eso la seguridad real se mantiene en backend con validaciones y expiracion de tokens.</p>
+<p><strong>Captura sugerida:</strong><br />
+- Vista de <code>frontend-spa/</code> y <code>frontend-spa/src/pages/LoginPage.jsx</code>.
+- Guardar como <code>docs/assets/capturas/01_frontend_login.png</code>.</p>
+<h2 id="42-auth-service-fastapi">4.2 Auth Service (FastAPI)</h2>
+<p><strong>Funcion principal:</strong><br />
+Registro, login y emision de JWT.</p>
+<p><strong>Herramientas usadas:</strong><br />
+- FastAPI para API REST.
+- passlib/bcrypt para hash de contraseñas.
+- PyJWT para firma y validacion de tokens.
+- SQLAlchemy para persistencia en PostgreSQL.</p>
+<p><strong>Implementacion en el repositorio:</strong><br />
+- <code>servicios/auth-service/app/core/security.py</code>: hash y verificacion bcrypt.
+- <code>servicios/auth-service/app/utils/jwt.py</code>: creacion y verificacion de token con expiracion.
+- <code>servicios/auth-service/app/routers/auth.py</code>: endpoints <code>register</code> y <code>login</code>.</p>
+<p><strong>Politicas de seguridad relacionadas:</strong>
+- No almacenar contraseñas en texto plano.
+- Tokens firmados y con expiracion.
+- Autenticacion centralizada.</p>
+<p><strong>Explicacion educativa profunda:</strong><br />
+Este servicio es el control de identidad del sistema. La contrasena nunca se conserva en forma legible; solo se guarda su hash bcrypt. En login, el sistema compara hashes y, si todo es valido, entrega un pase temporal (JWT). El token no es una password, es una credencial de sesion con vencimiento. Esta estrategia reduce el impacto de robo de base de datos y limita sesiones comprometidas.</p>
+<p><strong>Captura sugerida:</strong><br />
+- <code>servicios/auth-service/app/core/security.py</code>
+- <code>servicios/auth-service/app/utils/jwt.py</code>
+- Guardar como <code>docs/assets/capturas/02_auth_jwt_bcrypt.png</code>.</p>
+<h2 id="43-vault-service-fastapi-fernet-rate-limiting">4.3 Vault Service (FastAPI + Fernet + Rate Limiting)</h2>
+<p><strong>Funcion principal:</strong><br />
+Gestionar CRUD de secretos y protegerlos antes de persistirlos.</p>
+<p><strong>Herramientas usadas:</strong><br />
+- FastAPI para endpoints.
+- Fernet para cifrado simetrico de secretos.
+- SlowAPI + Redis para rate limiting.
+- SQLAlchemy para persistencia.</p>
+<p><strong>Implementacion en el repositorio:</strong><br />
+- <code>servicios/vault-service/app/utils/crypto.py</code>: cifrado/descifrado Fernet.
+- <code>servicios/vault-service/app/core/rate_limit.py</code>: limite por IP (10/min).
+- <code>servicios/vault-service/app/routers/secrets.py</code>: endpoints protegidos con JWT y limite de tasa.</p>
+<p><strong>Politicas de seguridad relacionadas:</strong>
+- Cifrado de secretos en reposo.
+- Control de abuso de peticiones.
+- Acceso solo para usuarios autenticados.</p>
+<p><strong>Explicacion educativa profunda:</strong><br />
+Si Auth valida "quien eres", Vault decide "que puedes guardar y leer". Su valor principal es que el secreto no se almacena en claro: se cifra con Fernet antes de llegar a la base. Adicionalmente, el rate limiting evita ataques de fuerza bruta y abuso de API. El resultado es defensa en capas: identidad + autorizacion + cifrado + control de trafico.</p>
+<p><strong>Captura sugerida:</strong><br />
+- <code>servicios/vault-service/app/utils/crypto.py</code>
+- <code>servicios/vault-service/app/routers/secrets.py</code>
+- Guardar como <code>docs/assets/capturas/03_vault_crypto_ratelimit.png</code>.</p>
+<h2 id="44-worker-service-procesamiento-asincrono">4.4 Worker Service (procesamiento asincrono)</h2>
+<p><strong>Funcion principal:</strong><br />
+Consumir eventos y ejecutar tareas de fondo, incluyendo limpieza de secretos expirados.</p>
+<p><strong>Herramientas usadas:</strong><br />
+- Python asincrono orientado a cola Redis.
+- SQLAlchemy para operaciones de limpieza en PostgreSQL.</p>
+<p><strong>Implementacion en el repositorio:</strong><br />
+- <code>servicios/worker-service/app/main.py</code>: consumo de cola, limpieza por expiracion y manejo de errores.
+- Integracion de colas en <code>servicios/vault-service/app/utils/job_queue.py</code>.</p>
+<p><strong>Politicas de seguridad relacionadas:</strong>
+- Trazabilidad de eventos de seguridad.
+- Eliminacion automatica de secretos vencidos.
+- Desacople de tareas sensibles para no degradar la API principal.</p>
+<p><strong>Explicacion educativa profunda:</strong><br />
+El worker funciona como un operador en segundo plano. Mientras la API responde rapido al usuario, el worker se ocupa de procesos periodicos y eventos asincronos. Esta separacion mejora rendimiento y resiliencia: si una tarea pesada falla, no tumba el servicio de negocio principal.</p>
+<p><strong>Captura sugerida:</strong><br />
+- <code>servicios/worker-service/app/main.py</code>
+- <code>servicios/vault-service/app/utils/job_queue.py</code>
+- Guardar como <code>docs/assets/capturas/04_worker_queue_expiration.png</code>.</p>
+<h2 id="45-postgresql-y-redis">4.5 PostgreSQL y Redis</h2>
+<p><strong>Funcion principal:</strong>
+- PostgreSQL: persistencia transaccional de usuarios y secretos.
+- Redis: soporte de rate limiting, colas y estructuras de expiracion.</p>
+<p><strong>Implementacion en el repositorio:</strong>
+- Definidos en <code>docker-compose.yml</code> y <code>docker-compose.prod.yml</code>.</p>
+<p><strong>Politicas de seguridad relacionadas:</strong>
+- Integridad y disponibilidad de datos.
+- Aislamiento de componentes mediante red interna de contenedores.</p>
+<p><strong>Explicacion educativa profunda:</strong><br />
+PostgreSQL es el archivo historico confiable; Redis es la capa ultrarapida para control operativo. Usarlos en conjunto permite separar "datos de negocio" de "datos de control en tiempo real". Esto reduce latencia y mejora capacidad de respuesta frente a picos de trafico.</p>
+<p><strong>Captura sugerida:</strong><br />
+- Seccion de servicios <code>postgres</code> y <code>redis</code> en <code>docker-compose.yml</code>.
+- Guardar como <code>docs/assets/capturas/05_postgres_redis_compose.png</code>.</p>
+<h2 id="46-gateway-nginx">4.6 Gateway Nginx</h2>
+<p><strong>Funcion principal:</strong><br />
+Punto unico de entrada y reverse proxy.</p>
+<p><strong>Herramientas usadas:</strong>
+- Nginx para enrutar trafico entre frontend y APIs.</p>
+<p><strong>Implementacion en el repositorio:</strong>
+- <code>gateway/nginx.conf</code> y <code>nginx/conf.d/default.conf</code>.
+- Rutas: <code>/</code> al frontend, <code>/auth/</code> al auth-service, <code>/vault/</code> al vault-service.</p>
+<p><strong>Politicas de seguridad relacionadas:</strong>
+- Minimizar exposicion directa de servicios internos.
+- Centralizar control de trafico.</p>
+<p><strong>Explicacion educativa profunda:</strong><br />
+Un unico punto de entrada simplifica gobierno de seguridad. En vez de abrir varias puertas al exterior, Nginx concentra el ingreso y reduce superficie de ataque. Tambien facilita agregar endurecimientos futuros como HTTPS estricto, cabeceras de seguridad y politicas de cache controlada.</p>
+<p><strong>Captura sugerida:</strong><br />
+- <code>gateway/nginx.conf</code>.
+- Guardar como <code>docs/assets/capturas/06_gateway_nginx_routes.png</code>.</p>
+<h2 id="47-infraestructura-y-orquestacion">4.7 Infraestructura y orquestacion</h2>
+<p><strong>Funcion principal:</strong>
+- Estandarizar despliegue local, productivo y de orquestacion.</p>
+<p><strong>Herramientas usadas:</strong>
+- Docker Compose local/productivo.
+- Ansible (IaC) en <code>infraestructura/ansible/</code>.
+- Kubernetes/K3s en <code>orquestacion/kubernetes/</code>.</p>
+<p><strong>Politicas de seguridad relacionadas:</strong>
+- Reproducibilidad de despliegue.
+- Trazabilidad de cambios de infraestructura.</p>
+<p><strong>Explicacion educativa profunda:</strong><br />
+Sin IaC, la seguridad depende de memoria humana y es propensa a errores. Con Compose/Ansible/K8s, la infraestructura se vuelve declarativa: se puede revisar, auditar y versionar como codigo. Esto fortalece consistencia entre entornos y reduce configuraciones inseguras por improvisacion.</p>
+<p><strong>Captura sugerida:</strong><br />
+- <code>infraestructura/ansible/</code> y <code>orquestacion/kubernetes/</code>.
+- Guardar como <code>docs/assets/capturas/07_iac_orquestacion.png</code>.</p>
+<hr />
+<h2 id="5-politicas-de-seguridad-implementadas-y-que-vigilan">5. Politicas de seguridad implementadas y que vigilan</h2>
+<p>Tabla de relacion politica -&gt; objetivo -&gt; mecanismo -&gt; evidencia:</p>
+<table>
+<thead>
+<tr>
+<th>Politica de seguridad</th>
+<th>Objetivo</th>
+<th>Mecanismo implementado</th>
+<th>Evidencia en repo</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Autenticacion JWT con expiracion</td>
+<td>Evitar acceso no autenticado y sesiones indefinidas</td>
+<td>Emision y verificacion JWT, <code>exp</code> en token</td>
+<td><code>auth-service/app/utils/jwt.py</code></td>
+</tr>
+<tr>
+<td>Hash de contrasenas con bcrypt</td>
+<td>Evitar exposicion de claves en texto plano</td>
+<td>Hash + verify con passlib</td>
+<td><code>auth-service/app/core/security.py</code></td>
+</tr>
+<tr>
+<td>Cifrado de secretos en reposo</td>
+<td>Proteger secretos incluso ante acceso a BD</td>
+<td>Fernet para encrypt/decrypt</td>
+<td><code>vault-service/app/utils/crypto.py</code></td>
+</tr>
+<tr>
+<td>Rate limiting 10/min por IP</td>
+<td>Reducir fuerza bruta y abuso de API</td>
+<td>SlowAPI + Redis</td>
+<td><code>vault-service/app/core/rate_limit.py</code> y <code>routers/secrets.py</code></td>
+</tr>
+<tr>
+<td>Segmentacion por microservicios</td>
+<td>Reducir blast radius</td>
+<td>Auth/Vault/Worker desacoplados</td>
+<td><code>servicios/</code> y <code>docker-compose.yml</code></td>
+</tr>
+<tr>
+<td>Escaneo preventivo de secretos</td>
+<td>Evitar fuga de credenciales</td>
+<td>Gitleaks + TruffleHog en pre-commit y CI</td>
+<td><code>.pre-commit-config.yaml</code> y workflow CI</td>
+</tr>
+<tr>
+<td>SAST y SCA continuos</td>
+<td>Detectar vulnerabilidades en codigo y dependencias</td>
+<td>Bandit, Semgrep, pip-audit, npm audit, dependency-check</td>
+<td><code>.github/workflows/ci-devsecops.yml</code></td>
+</tr>
+<tr>
+<td>DAST automatizado</td>
+<td>Validar seguridad en aplicacion ejecutandose</td>
+<td>OWASP ZAP baseline sobre stack levantado</td>
+<td><code>.github/workflows/dast-zap.yml</code></td>
+</tr>
+<tr>
+<td>Runtime security</td>
+<td>Detectar comportamiento anomalo en ejecucion</td>
+<td>Falco + reglas locales</td>
+<td><code>monitoring/falco/falco_rules.local.yaml</code></td>
+</tr>
+<tr>
+<td>Observabilidad de metricas/logs</td>
+<td>Detectar degradacion y eventos sospechosos</td>
+<td>Prometheus, Grafana, Loki, Promtail</td>
+<td><code>monitoring/</code> + <code>docker-compose.prod.yml</code></td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="6-herramientas-de-seguridad-y-monitoreo-analisis-academico-profundo">6. Herramientas de seguridad y monitoreo (analisis academico profundo)</h2>
+<h2 id="61-owasp-threat-dragon">6.1 OWASP Threat Dragon</h2>
+<p><strong>Que es:</strong> plataforma para modelado de amenazas basada en DFD y STRIDE.</p>
+<p><strong>Que hace en la practica:</strong> identifica posibles amenazas por flujo (suplantacion, manipulacion, fuga, denegacion, elevacion de privilegios) antes o durante el diseno.</p>
+<p><strong>Como se implementa aqui:</strong>
+- Modelos en <code>threat-model/01_SecureVault_Operativo_Threat_Dragon.json</code>.
+- Modelo CI/CD en <code>threat-model/02_SecureVault_CICD_Threat_Dragon.json</code>.
+- Copias en <code>docs/07_...json</code> y <code>docs/08_...json</code>.</p>
+<p><strong>Que politica vigila:</strong> shift-left y analisis preventivo de riesgo.</p>
+<p><strong>Explicacion educativa extensa:</strong><br />
+Threat Dragon no corrige vulnerabilidades por si solo; su valor esta en anticipar fallos de diseno cuando aun son baratos de resolver. Actua como una revision arquitectonica sistematica: antes de defender endpoints, se revisa por donde viajan datos sensibles y donde podria romperse la confianza entre componentes.</p>
+<h2 id="62-gitleaks-y-trufflehog">6.2 Gitleaks y TruffleHog</h2>
+<p><strong>Que son:</strong> escaneres de secretos.</p>
+<p><strong>Que hacen:</strong> buscan patrones de tokens, llaves y credenciales en codigo y cambios.</p>
+<p><strong>Implementacion en proyecto:</strong>
+- Gitleaks en CI (<code>secret-scan</code>) y pre-commit local.
+- TruffleHog en CI (<code>secret-scan-trufflehog</code>) y hook local.</p>
+<p><strong>Politica que vigilan:</strong> prevencion de fuga de secretos en repositorio.</p>
+<p><strong>Explicacion educativa extensa:</strong><br />
+Estas herramientas son la primera barrera contra errores humanos. El incidente mas comun en equipos nuevos es subir por accidente un token de nube o una clave API. Con escaneo en local y en pipeline, se bloquea la exposicion antes de propagarse a ramas principales o historial publico.</p>
+<h2 id="63-bandit-semgrep-pip-audit-npm-audit-dependency-check">6.3 Bandit, Semgrep, pip-audit, npm audit, Dependency-Check</h2>
+<p><strong>Que son:</strong> conjunto de controles SAST y SCA.</p>
+<p><strong>Que hacen:</strong>
+- Bandit/Semgrep: analizan codigo fuente y detectan patrones inseguros.
+- pip-audit/npm audit/Dependency-Check: detectan CVEs en dependencias.</p>
+<p><strong>Implementacion en proyecto:</strong>
+- Workflow <code>ci-devsecops.yml</code> ejecuta estos controles de forma automatica.</p>
+<p><strong>Politica que vigilan:</strong> codigo seguro y cadena de suministro confiable.</p>
+<p><strong>Explicacion educativa extensa:</strong><br />
+SAST protege contra errores propios de programacion; SCA protege contra riesgos heredados de terceros. Un proyecto moderno depende de muchas librerias, y una sola dependencia vulnerable puede comprometer el sistema entero. Esta capa reduce ese riesgo continuamente.</p>
+<h2 id="64-owasp-zap-dast">6.4 OWASP ZAP (DAST)</h2>
+<p><strong>Que es:</strong> escaner dinamico de seguridad sobre aplicacion en ejecucion.</p>
+<p><strong>Que hace:</strong> prueba endpoints reales y detecta problemas visibles en runtime.</p>
+<p><strong>Implementacion en proyecto:</strong>
+- Workflow <code>dast-zap.yml</code> levanta el stack con Docker Compose y ejecuta baseline scan contra <code>http://localhost:3000</code>.</p>
+<p><strong>Politica que vigila:</strong> validacion ofensiva continua de superficie expuesta.</p>
+<p><strong>Explicacion educativa extensa:</strong><br />
+DAST complementa SAST/SCA: una aplicacion puede verse correcta en codigo y aun asi fallar en comportamiento real por configuracion o integracion. ZAP ayuda a validar desde fuera, como lo haria un atacante, lo que realmente esta expuesto.</p>
+<h2 id="65-trivy-grype-y-hadolint">6.5 Trivy, Grype y Hadolint</h2>
+<p><strong>Que son:</strong> controles de seguridad para contenedores y Dockerfiles.</p>
+<p><strong>Que hacen:</strong>
+- Hadolint: revisa malas practicas en Dockerfile.
+- Trivy/Grype: escanean vulnerabilidades de sistema y paquetes en imagenes.</p>
+<p><strong>Implementacion en proyecto:</strong>
+- Hadolint en CI para Dockerfiles de auth/vault/frontend.
+- Trivy filesystem en CI.
+- Trivy + Grype en pipeline de release antes de push.</p>
+<p><strong>Politica que vigilan:</strong> hardening de imagenes y seguridad de artefactos.</p>
+<p><strong>Explicacion educativa extensa:</strong><br />
+En microservicios, la unidad real de despliegue es la imagen de contenedor. Si la imagen nace vulnerable, el riesgo se replica a cada entorno. Estos controles aseguran que lo que se despliega pase por una inspeccion minima de seguridad.</p>
+<h2 id="66-checkov-iac">6.6 Checkov (IaC)</h2>
+<p><strong>Que es:</strong> escaner de infraestructura como codigo.</p>
+<p><strong>Que hace:</strong> revisa archivos de orquestacion y despliegue para detectar configuraciones riesgosas.</p>
+<p><strong>Implementacion en proyecto:</strong>
+- Job <code>iac-checkov</code> en <code>ci-devsecops.yml</code> sobre compose, ansible y dockerfile.</p>
+<p><strong>Politica que vigila:</strong> seguridad de infraestructura declarativa.</p>
+<p><strong>Explicacion educativa extensa:</strong><br />
+Muchas brechas no nacen del codigo de aplicacion sino de infraestructura mal configurada. Checkov convierte mejores practicas de cloud e IaC en reglas ejecutables dentro del pipeline.</p>
+<h2 id="67-prometheus-grafana-loki-promtail-y-falco">6.7 Prometheus, Grafana, Loki, Promtail y Falco</h2>
+<p><strong>Que son:</strong> stack de observabilidad y seguridad operativa.</p>
+<p><strong>Que hacen:</strong>
+- Prometheus: recolecta metricas.
+- Grafana: visualiza y alerta.
+- Loki + Promtail: centralizan logs de contenedores.
+- Falco: detecta comportamientos sospechosos en runtime (syscalls).</p>
+<p><strong>Implementacion en proyecto:</strong>
+- Definidos en <code>docker-compose.prod.yml</code> y configurados en <code>monitoring/</code>.
+- Reglas locales de Falco en <code>monitoring/falco/falco_rules.local.yaml</code>.</p>
+<p><strong>Politica que vigilan:</strong> deteccion temprana y respuesta operativa.</p>
+<p><strong>Explicacion educativa extensa:</strong><br />
+No basta con "desplegar seguro"; tambien hay que "operar seguro". La observabilidad permite ver degradaciones, picos anormales y errores recurrentes. Falco agrega vigilancia activa de comportamiento anomalo en host/contenedores, clave para detectar ejecuciones inesperadas.</p>
+<h2 id="68-archivo-ci-devsecopsyml-y-workflows-asociados">6.8 Archivo ci-devsecops.yml y workflows asociados</h2>
+<p><strong>Que es:</strong> conjunto de archivos YAML de GitHub Actions que formalizan la automatizacion del pipeline del repositorio.</p>
+<p><strong>Que hacen:</strong> definen, paso a paso, cuando se ejecutan pruebas, escaneos de seguridad, construccion de imagenes y despliegues.</p>
+<p><strong>Implementacion en proyecto:</strong>
+- <code>.github/workflows/ci-devsecops.yml</code>: ejecuta pruebas, linting, SAST, SCA, secret scanning, revision de Dockerfiles e IaC.
+- <code>.github/workflows/dast-zap.yml</code>: levanta el stack y corre analisis dinamico con OWASP ZAP.
+- <code>.github/workflows/container-release.yml</code>: construye, escanea y publica imagenes de contenedor.
+- <code>.github/workflows/deploy-production.yml</code>: despliega por SSH usando <code>docker-compose.prod.yml</code>.</p>
+<p><strong>Politica que vigila:</strong> automatizacion obligatoria de controles antes de promover cambios a entornos superiores.</p>
+<p><strong>Explicacion educativa extensa:</strong><br />
+Estos archivos YAML no forman parte del negocio funcional de la aplicacion, pero si del mecanismo real de aseguramiento del proyecto. Cada archivo define una parte del ciclo DevSecOps: validacion de codigo, analisis de seguridad, publicacion de artefactos y despliegue controlado. En terminos academicos, su importancia radica en que transforman reglas y buenas practicas en ejecucion automatica y repetible. El valor no esta en la carpeta que los contiene, sino en la declaracion operativa que cada workflow aporta.</p>
+<h2 id="69-archivo-trunkyaml-y-configuraciones-de-linters">6.9 Archivo trunk.yaml y configuraciones de linters</h2>
+<p><strong>Que es:</strong> conjunto de archivos de configuracion usados por Trunk para unificar chequeos locales de calidad y seguridad.</p>
+<p><strong>Que hace:</strong> define que herramientas se ejecutan, que versiones usan y con que reglas analizan codigo, Dockerfiles, Markdown y YAML antes de llegar al pipeline remoto.</p>
+<p><strong>Implementacion en proyecto:</strong>
+- <code>.trunk/trunk.yaml</code>: declara runtimes y chequeos habilitados.
+- <code>.trunk/configs/ruff.toml</code>: reglas del analizador Python Ruff.
+- <code>.trunk/configs/.hadolint.yaml</code>: ajustes de linting para Dockerfiles.
+- <code>.trunk/configs/.markdownlint.yaml</code>: reglas de consistencia para Markdown.
+- Tambien se apoyan configuraciones para <code>bandit</code>, <code>checkov</code>, <code>trufflehog</code>, <code>yamllint</code>, <code>prettier</code>, <code>black</code>, <code>isort</code> y <code>actionlint</code>.</p>
+<p><strong>Politica que vigila:</strong> calidad homogenea del codigo y deteccion temprana de problemas antes del pipeline remoto.</p>
+<p><strong>Explicacion educativa extensa:</strong><br />
+El archivo <code>trunk.yaml</code> funciona como punto de orquestacion local para los chequeos del proyecto. Su utilidad principal es fijar herramientas, versiones y reglas comunes, de modo que los resultados no dependan de cada maquina de desarrollo. Los archivos auxiliares como <code>ruff.toml</code>, <code>.hadolint.yaml</code> y <code>.markdownlint.yaml</code> detallan las reglas concretas que se aplican sobre distintos tipos de artefactos. En un enfoque shift-left, este grupo de archivos adelanta controles tecnicos al momento de desarrollo y reduce errores antes de que el cambio llegue a integracion continua.</p>
+<hr />
+<h2 id="7-pipeline-devsecops-de-extremo-a-extremo">7. Pipeline DevSecOps de extremo a extremo</h2>
+<div class="mermaid">flowchart LR
+  P[Plan] --&gt; C[Code]
+  C --&gt; B[Build]
+  B --&gt; T[Test]
+  T --&gt; R[Release]
+  R --&gt; D[Deploy]
+  D --&gt; O[Operate]
+
+  P --&gt; TD[Threat Dragon]
+  C --&gt; GL[Gitleaks/TruffleHog]
+  C --&gt; SA[Bandit/Semgrep/pip-audit/npm audit]
+  B --&gt; DF[Hadolint/Trivy FS]
+  T --&gt; ZAP[OWASP ZAP DAST]
+  R --&gt; IMG[Trivy + Grype sobre imagenes]
+  D --&gt; SSH[Deploy por workflow con aprobacion]
+  O --&gt; MON[Prometheus/Grafana/Loki/Falco]</div>
+<h3 id="71-lectura-pedagogica-del-pipeline">7.1 Lectura pedagogica del pipeline</h3>
+<ul>
+<li>Plan: se anticipan amenazas antes de codificar.</li>
+<li>Code: se bloquea fuga de secretos y patrones inseguros.</li>
+<li>Build: se valida higiene de artefactos contenerizados.</li>
+<li>Test: se evalua la aplicacion corriendo.</li>
+<li>Release/Deploy: se promueve solo lo escaneado.</li>
+<li>Operate: se mantiene vigilancia continua.</li>
+</ul>
+<hr />
+<h2 id="8-riesgos-identificados-mitigaciones-y-brechas-residuales">8. Riesgos identificados, mitigaciones y brechas residuales</h2>
+<table>
+<thead>
+<tr>
+<th>Riesgo</th>
+<th>Mitigacion actual</th>
+<th>Brecha residual</th>
+<th>Recomendacion</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Token en localStorage</td>
+<td>JWT con expiracion y validacion backend</td>
+<td>Exposicion ante XSS</td>
+<td>Migrar a cookies HttpOnly + CSRF defense</td>
+</tr>
+<tr>
+<td>Trafico HTTP</td>
+<td>Entorno local controlado</td>
+<td>Sin TLS en despliegue remoto si no se configura</td>
+<td>Forzar HTTPS en gateway/ingress</td>
+</tr>
+<tr>
+<td>Clave Fernet no persistente por defecto</td>
+<td>Soporte de <code>ENCRYPTION_KEY</code></td>
+<td>Riesgo de perdida de descifrado si no se fija clave</td>
+<td>Gestionar clave en secret manager</td>
+</tr>
+<tr>
+<td>Secretos en codigo/commits</td>
+<td>Hooks + CI secret scanning</td>
+<td>Falso negativo posible</td>
+<td>Politica de rotacion y deteccion continua</td>
+</tr>
+<tr>
+<td>Abuso de API</td>
+<td>Rate limiting en Vault</td>
+<td>Aun sin WAF dedicado</td>
+<td>Extender limites por ruta y reputacion IP</td>
+</tr>
+<tr>
+<td>Runtime compromise</td>
+<td>Falco con reglas base</td>
+<td>Necesita tuning por entorno</td>
+<td>Ajustar reglas y alertas integradas</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="9-evidencia-visual-capturas-de-pantalla-por-seccion">9. Evidencia visual: capturas de pantalla por seccion</h2>
+<p>Las siguientes evidencias visuales se encuentran integradas en este documento.</p>
+<h3 id="evidencia-visual-1-frontend-login">Evidencia visual 1: Frontend login</h3>
+<p><img alt="Frontend login" src="assets/capturas/01_frontend_login.png" /></p>
+<h3 id="evidencia-visual-2-auth-jwt-y-bcrypt">Evidencia visual 2: Auth JWT y bcrypt</h3>
+<p><img alt="Auth JWT y bcrypt" src="assets/capturas/02_auth_jwt_bcrypt.png" /></p>
+<h3 id="evidencia-visual-3-vault-crypto-y-rate-limit">Evidencia visual 3: Vault crypto y rate limit</h3>
+<p><img alt="Vault crypto y rate limit" src="assets/capturas/03_vault_crypto_ratelimit.png" /></p>
+<h3 id="evidencia-visual-4-worker-queue-y-expiracion">Evidencia visual 4: Worker queue y expiracion</h3>
+<p><img alt="Worker queue y expiracion" src="assets/capturas/04_worker_queue_expiration.png" /></p>
+<h3 id="evidencia-visual-5-postgresql-y-redis-en-compose">Evidencia visual 5: PostgreSQL y Redis en compose</h3>
+<p><img alt="PostgreSQL y Redis en compose" src="assets/capturas/05_postgres_redis_compose.png" /></p>
+<h3 id="evidencia-visual-6-gateway-nginx-rutas">Evidencia visual 6: Gateway Nginx rutas</h3>
+<p><img alt="Gateway Nginx rutas" src="assets/capturas/06_gateway_nginx_routes.png" /></p>
+<h3 id="evidencia-visual-7-iac-y-orquestacion">Evidencia visual 7: IaC y orquestacion</h3>
+<p><img alt="IaC y orquestacion" src="assets/capturas/07_iac_orquestacion.png" /></p>
+<h3 id="evidencia-visual-8-workflow-ci-devsecops">Evidencia visual 8: Workflow CI DevSecOps</h3>
+<p><img alt="Workflow CI DevSecOps" src="assets/capturas/08_workflow_ci_devsecops.png" /></p>
+<h3 id="evidencia-visual-9-workflow-dast-zap">Evidencia visual 9: Workflow DAST ZAP</h3>
+<p><img alt="Workflow DAST ZAP" src="assets/capturas/09_workflow_dast_zap.png" /></p>
+<h3 id="evidencia-visual-10-monitoring-stack">Evidencia visual 10: Monitoring stack</h3>
+<p><img alt="Monitoring stack" src="assets/capturas/10_monitoring_stack.png" /></p>
+<h3 id="evidencia-visual-11-threat-model-files">Evidencia visual 11: Threat model files</h3>
+<p><img alt="Threat model files" src="assets/capturas/11_threat_model_files.png" /></p>
+<h3 id="evidencia-visual-12-security-matrix-docs">Evidencia visual 12: Security matrix docs</h3>
+<p><img alt="Security matrix docs" src="assets/capturas/12_docs_security_matrix.png" /></p>
+<hr />
+<h2 id="10-conclusiones-y-recomendaciones">10. Conclusiones y recomendaciones</h2>
+<p>SecureVault Pro demuestra una implementacion madura para contexto academico-profesional: seguridad en capas, pipeline automatizado, escaneo de codigo/dependencias/imagenes, y monitoreo operativo continuo.</p>
+<p>Fortalezas:
+- Defensa en profundidad aplicada de forma practica.
+- Cobertura amplia de controles DevSecOps.
+- Estructura modular clara y reproducible.
+- Documentacion alineada con evidencia tecnica.</p>
+<p>Recomendaciones prioritarias para evolucion a produccion estricta:
+1. Migrar gestion de sesion a cookies HttpOnly y reforzar CSP.
+2. Habilitar TLS de extremo a extremo en todos los entornos remotos.
+3. Externalizar secretos a gestor dedicado (por ejemplo, Vault/KMS).
+4. Integrar alertamiento formal (correo/chat/siem) para eventos de Falco y umbrales de Prometheus.
+5. Definir politica de rotacion de claves y respuesta a incidentes versionada.</p>
+<hr />
+<h2 id="11-anexos">11. Anexos</h2>
+<h2 id="anexo-a-diagrama-de-flujos-de-datos-de-seguridad">Anexo A. Diagrama de flujos de datos de seguridad</h2>
+<div class="mermaid">flowchart TD
+  U[Usuario] --&gt;|Credenciales| G[Gateway]
+  G --&gt; A[Auth Service]
+  A --&gt;|JWT| U
+  U --&gt;|JWT + CRUD secretos| G
+  G --&gt; V[Vault Service]
+  V --&gt;|Datos cifrados| P[(PostgreSQL)]
+  V --&gt;|Rate limiting y eventos| R[(Redis)]
+  R --&gt; W[Worker]
+  W --&gt;|Limpieza por expiracion| P</div>
+<h2 id="anexo-b-matriz-herramienta-vs-politica-vigilada">Anexo B. Matriz herramienta vs politica vigilada</h2>
+<table>
+<thead>
+<tr>
+<th>Herramienta</th>
+<th>Tipo</th>
+<th>Politica vigilada principal</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Threat Dragon</td>
+<td>Modelado de amenazas</td>
+<td>Analisis preventivo de riesgo</td>
+</tr>
+<tr>
+<td>Gitleaks/TruffleHog</td>
+<td>Secret scanning</td>
+<td>Prevencion de fuga de credenciales</td>
+</tr>
+<tr>
+<td>Bandit/Semgrep</td>
+<td>SAST</td>
+<td>Codigo seguro</td>
+</tr>
+<tr>
+<td>pip-audit/npm audit/Dependency-Check</td>
+<td>SCA</td>
+<td>Dependencias seguras</td>
+</tr>
+<tr>
+<td>Hadolint</td>
+<td>Lint de contenedor</td>
+<td>Dockerfiles robustos</td>
+</tr>
+<tr>
+<td>Trivy/Grype</td>
+<td>Escaneo de imagenes</td>
+<td>Artefactos libres de CVEs criticos</td>
+</tr>
+<tr>
+<td>OWASP ZAP</td>
+<td>DAST</td>
+<td>Seguridad en ejecucion</td>
+</tr>
+<tr>
+<td>Prometheus/Grafana</td>
+<td>Observabilidad</td>
+<td>Disponibilidad y comportamiento</td>
+</tr>
+<tr>
+<td>Loki/Promtail</td>
+<td>Logging</td>
+<td>Trazabilidad operativa</td>
+</tr>
+<tr>
+<td>Falco</td>
+<td>Runtime security</td>
+<td>Deteccion temprana de comportamiento anomalo</td>
+</tr>
+</tbody>
+</table>
+</body>
+</html>

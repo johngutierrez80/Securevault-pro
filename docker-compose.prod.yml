@@ -1,13 +1,13 @@
 services:
   auth:
-    image: ghcr.io/${GITHUB_REPOSITORY_OWNER}/securevault-auth:${IMAGE_TAG}
+    image: docker.io/necromanoger/securevault-auth:${IMAGE_TAG}
     restart: unless-stopped
     depends_on:
       postgres:
         condition: service_healthy
 
   vault:
-    image: ghcr.io/${GITHUB_REPOSITORY_OWNER}/securevault-vault:${IMAGE_TAG}
+    image: docker.io/necromanoger/securevault-vault:${IMAGE_TAG}
     restart: unless-stopped
     depends_on:
       postgres:
@@ -16,7 +16,7 @@ services:
         condition: service_healthy
 
   worker:
-    image: ghcr.io/${GITHUB_REPOSITORY_OWNER}/securevault-worker:${IMAGE_TAG}
+    image: docker.io/necromanoger/securevault-worker:${IMAGE_TAG}
     restart: unless-stopped
     depends_on:
       redis:
@@ -47,7 +47,7 @@ services:
       retries: 5
 
   gateway:
-    image: ghcr.io/${GITHUB_REPOSITORY_OWNER}/securevault-frontend:${IMAGE_TAG}
+    image: docker.io/necromanoger/securevault-frontend:${IMAGE_TAG}
     restart: unless-stopped
     ports:
       - "3000:80"
