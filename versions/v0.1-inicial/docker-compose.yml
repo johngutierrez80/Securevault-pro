@@ -1,48 +1,76 @@
+version: "3.9"
+
 services:
-
-  auth:
-    build: ./auth-service
-    ports:
-      - "8001:8001"
-    depends_on:
-      postgres:
-        condition: service_healthy
-
-  vault:
-    build: ./vault-service
-    ports:
-      - "8002:8002"
-    depends_on:
-      postgres:
-        condition: service_healthy
-
   postgres:
-    image: postgres
+    image: postgres:16-alpine
     environment:
-      POSTGRES_USER: vault
-      POSTGRES_PASSWORD: vault
-      POSTGRES_DB: vaultdb
+      POSTGRES_DB: ${POSTGRES_DB:-securevault}
+      POSTGRES_USER: ${POSTGRES_USER:-securevault}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-securevault123}
     ports:
       - "5432:5432"
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U vault -d vaultdb"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
 
   redis:
-    image: redis
+    image: redis:7-alpine
     ports:
       - "6379:6379"
 
-  gateway:
-    image: nginx:alpine
+  auth-service:
+    build:
+      context: ./servicios/auth-service
+    environment:
+      PORT: ${AUTH_PORT:-3001}
+      DATABASE_URL: postgres://${POSTGRES_USER:-securevault}:${POSTGRES_PASSWORD:-securevault123}@postgres:5432/${POSTGRES_DB:-securevault}
+      JWT_SECRET: ${JWT_SECRET:-super-secret-jwt-key-change-me}
+      REDIS_URL: redis://redis:6379
     ports:
-      - "3000:80"
-    volumes:
-      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
-      - ./nginx/conf.d/default.conf:/etc/nginx/conf.d/default.conf
-      - ./frontend:/usr/share/nginx/html
+      - "3001:3001"
     depends_on:
-      - auth
-      - vault
+      - postgres
+      - redis
+
+  vault-service:
+    build:
+      context: ./servicios/vault-service
+    environment:
+      PORT: ${VAULT_PORT:-3002}
+      DATABASE_URL: postgres://${POSTGRES_USER:-securevault}:${POSTGRES_PASSWORD:-securevault123}@postgres:5432/${POSTGRES_DB:-securevault}
+      JWT_SECRET: ${JWT_SECRET:-super-secret-jwt-key-change-me}
+      SECRET_ENCRYPTION_KEY: ${SECRET_ENCRYPTION_KEY:-0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef}
+      REDIS_URL: redis://redis:6379
+    ports:
+      - "3002:3002"
+    depends_on:
+      - postgres
+      - redis
+
+  worker-service:
+    build:
+      context: ./servicios/worker-service
+    environment:
+      PORT: ${WORKER_PORT:-3003}
+      DATABASE_URL: postgres://${POSTGRES_USER:-securevault}:${POSTGRES_PASSWORD:-securevault123}@postgres:5432/${POSTGRES_DB:-securevault}
+      REDIS_URL: redis://redis:6379
+      CLEANUP_CRON: "*/1 * * * *"
+    ports:
+      - "3003:3003"
+    depends_on:
+      - postgres
+      - redis
+
+  frontend-spa:
+    build:
+      context: ./frontend-spa
+    environment:
+      VITE_AUTH_API_URL: http://localhost:3001
+      VITE_VAULT_API_URL: http://localhost:3002
+    ports:
+      - "5173:5173"
+    depends_on:
+      - auth-service
+      - vault-service
+
+volumes:
+  postgres_data:

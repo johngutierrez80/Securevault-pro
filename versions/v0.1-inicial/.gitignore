@@ -1,32 +1,10 @@
-# Environment variables
+node_modules/
 .env
-
-# Python
-__pycache__/
-*.pyc
-*.pyo
-*.pyd
-.Python
-env/
-venv/
-.venv/
-pip-log.txt
-pip-delete-this-directory.txt
-.tox/
-.coverage
-.coverage.*
-.pytest_cache/
-
-# Docker
-.dockerignore
-
-# IDE
+.env.*
+!.env.example
+dist/
+coverage/
 .vscode/
 .idea/
-
-# OS
 .DS_Store
-Thumbs.db
-
-# Logs
 *.log

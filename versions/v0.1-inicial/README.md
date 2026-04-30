@@ -1,91 +1,87 @@
-# SecureVault
+# SecureVault Pro - Avance 1 (MVP Funcional + Base DevSecOps)
 
-Un gestor seguro de contraseñas construido con FastAPI, PostgreSQL y Docker.
+![Node.js](https://img.shields.io/badge/Node.js-20.x-339933?logo=node.js&logoColor=white)
+![React](https://img.shields.io/badge/React-18-61DAFB?logo=react&logoColor=black)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-4169E1?logo=postgresql&logoColor=white)
+![Redis](https://img.shields.io/badge/Redis-7-DC382D?logo=redis&logoColor=white)
+![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white)
+![DevSecOps](https://img.shields.io/badge/DevSecOps-CI/CD-success)
 
-## Metas del Proyecto
+## Descripcion
+SecureVault Pro es una plataforma base de gestion de secretos, orientada a seguridad desde el dia 1. Este Avance 1 entrega un MVP funcional con autenticacion JWT, cifrado de secretos, limpieza automatica por worker, contenedorizacion completa y pipeline DevSecOps inicial.
 
-- Aplicar autenticacion centralizada con JWT entre servicios.
-- Garantizar persistencia real con PostgreSQL para usuarios y secretos.
-- Proteger secretos mediante hash de contraseñas y cifrado de datos sensibles.
-- Incorporar componentes de entorno cloud y DevOps como Nginx, Docker Compose, Redis y rate limiting.
-- Evitar exposicion de detalles tecnicos innecesarios en la interfaz de usuario.
-- Mantener una separacion clara entre frontend, auth service, vault service y gateway.
+## Estado actual del avance
+- MVP funcional: completado
+- Estructura obligatoria del repositorio: completada
+- Pipeline CI/CD base: completado
+- Documentacion inicial: completada
+- Informe PDF: pendiente de generar con evidencias
 
-## Estructura del Proyecto
+## Tecnologias usadas
+- Frontend: React + Vite
+- Backend: Node.js + Express (microservicios)
+- Base de datos: PostgreSQL
+- Broker/cache: Redis
+- Seguridad: JWT, Helmet, rate-limit, AES-256-GCM
+- DevSecOps: GitHub Actions, Gitleaks, Semgrep, Trivy
+- IaC/Orquestacion: Ansible + Docker Swarm base
 
+## Quick Start
+```bash
+cp .env.example .env
+docker compose up --build
 ```
-secure-vault/
+
+### URLs
+- Frontend: http://localhost:5173
+- Auth Service: http://localhost:3001/health
+- Vault Service: http://localhost:3002/health
+- Worker Service: http://localhost:3003/health
+
+## Diagrama de componentes (Mermaid)
+```mermaid
+flowchart TD
+  FE[Frontend SPA] --> AS[Auth Service]
+  FE --> VS[Vault Service]
+  AS --> PG[(PostgreSQL)]
+  VS --> PG
+  WS[Worker Service] --> PG
+  AS --> RD[(Redis)]
+  VS --> RD
+  WS --> RD
+```
+
+## Estructura principal
+```text
+Securevault-pro/
+├── LICENSE
+├── README.md
 ├── docker-compose.yml
-├── nginx/
-│   ├── nginx.conf
-│   └── conf.d/
-│       └── default.conf
-├── auth-service/
-│   ├── app/
-│   │   ├── main.py
-│   │   ├── routers/
-│   │   │   └── auth.py
-│   │   ├── models/
-│   │   ├── schemas/
-│   │   ├── dependencies/
-│   │   ├── services/
-│   │   ├── utils/          # jwt.py, crypto.py, security.py
-│   │   └── core/           # config.py, security.py
-│   ├── tests/
-│   ├── Dockerfile
-│   └── requirements.txt
-├── vault-service/
-│   ├── (estructura similar a auth)
-│   ├── routers/
-│   │   └── secrets.py
-│   └── ...
-├── frontend/
-│   ├── index.html          # login
-│   ├── dashboard.html
-│   ├── assets/             # css, js, bootstrap
-│   └── js/
-│       └── main.js         # fetch + manejo JWT
-├── .env.example
-├── .gitignore
-└── README.md
+├── docker-compose.prod.yml
+├── .github/workflows/ci-cd.yml
+├── infraestructura/ansible/site.yml
+├── orquestacion/docker-swarm.yml
+├── servicios/
+│   ├── auth-service/
+│   ├── vault-service/
+│   └── worker-service/
+├── frontend-spa/
+└── docs/
 ```
 
-## Instalación y Ejecución
+## Documentacion
+- docs/01_Arquitectura.md
+- docs/02_Desarrollo.md
+- docs/03_Despliegue.md
+- docs/04_Seguridad.md
+- docs/05_Usuario.md
+- docs/06_Checklist_Avance1.md
 
-1. Clona el repositorio.
-2. Copia `.env.example` a `.env` y configura las variables.
-3. Ejecuta `docker-compose up --build`.
-
-## Servicios
-
-- **Auth Service**: Maneja registro y login de usuarios.
-- **Vault Service**: Almacena y recupera contraseñas encriptadas.
-- **Frontend**: Interfaz web para login y gestión de vault.
-- **PostgreSQL**: Base de datos.
-- **Nginx**: Proxy reverso.
-
-## API Endpoints
-
-### Auth
-- POST `/auth/register` - Registrar usuario
-- POST `/auth/login` - Login
-
-### Vault
-- POST `/vault/secret` - Guardar secreto
-- GET `/vault/secret` - Obtener secretos
-
-## Seguridad
-
-- Contraseñas hasheadas con bcrypt.
-- JWT para autenticación.
-- Encriptación Fernet para secretos.
-- Comunicación a través de Nginx.
-
-## Documentación de Entrega
-
-- [Manual de Usuario](docs/01_Manual_Usuario.md)
-- [Manual Técnico](docs/02_Manual_Tecnico.md)
-- [Manual de Operación y DevOps](docs/03_Manual_Operacion_DevOps.md)
-- [Seguridad y Riesgos](docs/04_Seguridad_y_Riesgos.md)
-- [Plan de Pruebas](docs/05_Plan_Pruebas.md)
-- [Checklist de Entrega](docs/06_Checklist_Entrega.md)
+## Plan sugerido de 7 dias
+- Dia 1: estructura y worker base
+- Dia 2: compose y flujo login -> secreto
+- Dia 3: pipeline DevSecOps
+- Dia 4: diagramas + threat modeling
+- Dia 5: documentacion
+- Dia 6: escaneos y hardening
+- Dia 7: informe PDF final

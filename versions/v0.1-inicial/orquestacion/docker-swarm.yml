@@ -1,0 +1,38 @@
+version: "3.9"
+
+services:
+  auth-service:
+    image: securevault/auth-service:latest
+    ports:
+      - "3001:3001"
+    deploy:
+      replicas: 1
+
+  vault-service:
+    image: securevault/vault-service:latest
+    ports:
+      - "3002:3002"
+    deploy:
+      replicas: 1
+
+  worker-service:
+    image: securevault/worker-service:latest
+    deploy:
+      replicas: 1
+
+  frontend-spa:
+    image: securevault/frontend-spa:latest
+    ports:
+      - "80:5173"
+    deploy:
+      replicas: 1
+
+  postgres:
+    image: postgres:16-alpine
+    deploy:
+      replicas: 1
+
+  redis:
+    image: redis:7-alpine
+    deploy:
+      replicas: 1

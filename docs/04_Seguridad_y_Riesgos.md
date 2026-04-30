@@ -105,3 +105,62 @@ El entorno productivo definido en `docker-compose.prod.yml` incluye una base mí
 Consideración operativa:
 
 - Falco depende del soporte eBPF o capacidades equivalentes en el kernel del host Linux de producción.
+
+## 9. Remediación de vulnerabilidades en imágenes base
+
+### 9.1 Estado inicial de vulnerabilidades (v0.1)
+
+La versión inicial del proyecto utilizaba imágenes base `node:20-alpine` para los tres microservicios backend y `node:20-alpine` para el frontend en modo desarrollo. El escaneo de imágenes con Docker Scout arrojó los siguientes resultados:
+
+| Severidad | Cantidad (v0.1 inicial) |
+| --------- | ----------------------- |
+| Críticas  | 3                       |
+| Altas     | 16                      |
+| Medias    | 28                      |
+| Bajas     | 2                       |
+| **Total** | **49**                  |
+
+### 9.2 Proceso de remediación
+
+La remediación se ejecutó en dos frentes:
+
+**a) Migración de stack tecnológico**
+
+La reescritura completa de los microservicios de Node.js/Express a Python 3.11/FastAPI, combinada con el cambio de imagen base a `python:3.11-slim`, eliminó la superficie de ataque asociada al ecosistema npm y las dependencias de Node.js que concentraban la mayor parte de las vulnerabilidades críticas y altas.
+
+**b) Actualización de versiones por CVE**
+
+Se actualizaron paquetes específicos en respuesta a CVEs identificados:
+
+| CVE              | Descripción                                    | Acción                                     |
+| ---------------- | ---------------------------------------------- | ------------------------------------------ |
+| CVE-2025-68121   | Vulnerabilidad en dependencia de imagen base   | Actualización de versión según recomendación del CVE |
+| CVE-2024-24790   | Vulnerabilidad en componente de red (net/netip) | Actualización de versión según recomendación del CVE |
+| CVE-2026-26996   | Vulnerabilidad en dependencia de runtime       | Actualización de versión según recomendación del CVE |
+
+**c) Mejoras en el Dockerfile del frontend**
+
+El frontend migró de un contenedor de desarrollo Vite (puerto 5173, imagen `node:20-alpine`) a un build multi-stage productivo:
+
+- Stage 1: `node:20-alpine` solo para compilar la SPA.
+- Stage 2: `nginx:alpine` para servir los estáticos compilados.
+
+Esto reduce drásticamente la superficie de ataque al eliminar las herramientas de desarrollo del artefacto final.
+
+### 9.3 Estado final de vulnerabilidades (v1.0)
+
+Tras la aplicación de las remediaciones, el escaneo de imágenes mostró la siguiente mejora:
+
+| Severidad | v0.1 inicial | v1.0 final | Reducción |
+| --------- | ------------ | ---------- | --------- |
+| Críticas  | 3            | 0          | -100 %    |
+| Altas     | 16           | 2          | -87,5 %   |
+| Medias    | 28           | 9          | -67,9 %   |
+| Bajas     | 2            | 2          | 0 %       |
+| **Total** | **49**       | **13**     | **-73 %** |
+
+### 9.4 Evidencia documental
+
+El análisis detallado, capturas de pantalla del escaneo inicial y final, y trazabilidad de cada remediación están disponibles en el documento:
+
+- `Remediación de vulnerabilidades.docx` — ubicado en la raíz del repositorio.
