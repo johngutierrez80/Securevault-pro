@@ -1,17 +1,11 @@
 # ==============================================================
-# SecureVault Pro — Descarga de imagenes desde Docker Hub
+# SecureVault Pro - Download images from Docker Hub
 #
-# Ejecuta este script para descargar todas las imagenes del
-# proyecto antes de correrlo por primera vez.
-#
-# Uso:
+# Usage:
 #   .\scripts\pull-images.ps1
-#
-# Requisito: tener Docker Desktop instalado y corriendo.
-#   https://www.docker.com/products/docker-desktop
 # ==============================================================
 
-$TAG      = "v1.0.0"
+$TAG = "v1.0.0"
 $REGISTRY = "necromanoger"
 
 $IMAGES = @(
@@ -21,27 +15,26 @@ $IMAGES = @(
     "$REGISTRY/securevault-frontend:$TAG"
 )
 
-# ── Verificar Docker ────────────────────────────────────────
 Write-Host ""
-Write-Host "Verificando Docker..." -ForegroundColor Cyan
+Write-Host "Checking Docker..." -ForegroundColor Cyan
 
 if (-not (Get-Command docker -ErrorAction SilentlyContinue)) {
-    Write-Host "ERROR: Docker no encontrado. Instala Docker Desktop y vuelve a intentarlo." -ForegroundColor Red
-    Write-Host "       https://www.docker.com/products/docker-desktop" -ForegroundColor Red
+    Write-Host "ERROR: Docker not found. Install Docker Desktop and retry." -ForegroundColor Red
+    Write-Host "https://www.docker.com/products/docker-desktop" -ForegroundColor Red
     exit 1
 }
 
 docker info > $null 2>&1
 if ($LASTEXITCODE -ne 0) {
-    Write-Host "ERROR: Docker Desktop no esta corriendo. Inicialo y vuelve a ejecutar este script." -ForegroundColor Red
+    Write-Host "ERROR: Docker Desktop is not running." -ForegroundColor Red
     exit 1
 }
 
-Write-Host "OK — Docker disponible." -ForegroundColor Green
+Write-Host "OK - Docker available." -ForegroundColor Green
 
-# ── Descargar imagenes ──────────────────────────────────────
 Write-Host ""
-Write-Host "Descargando imagenes de SecureVault Pro (tag: $TAG)..." -ForegroundColor Cyan
+Write-Host "Downloading SecureVault Pro images..." -ForegroundColor Cyan
+Write-Host "Tag: $TAG" -ForegroundColor Cyan
 Write-Host ""
 
 $failed = @()
@@ -49,29 +42,28 @@ $failed = @()
 foreach ($img in $IMAGES) {
     Write-Host "  >> docker pull $img" -ForegroundColor DarkGray
     docker pull $img
+
     if ($LASTEXITCODE -ne 0) {
         $failed += $img
-        Write-Host "  FALLO: $img" -ForegroundColor Red
-    } else {
+        Write-Host "  FAIL: $img" -ForegroundColor Red
+    }
+    else {
         Write-Host "  OK: $img" -ForegroundColor Green
     }
+
     Write-Host ""
 }
 
-# ── Resultado ───────────────────────────────────────────────
 if ($failed.Count -gt 0) {
-    Write-Host "Las siguientes imagenes no pudieron descargarse:" -ForegroundColor Red
+    Write-Host "The following images could not be downloaded:" -ForegroundColor Red
     $failed | ForEach-Object { Write-Host "  - $_" -ForegroundColor Red }
-    Write-Host "Verifica tu conexion a internet e intenta de nuevo." -ForegroundColor Yellow
+    Write-Host "Check your network connection and try again." -ForegroundColor Yellow
     exit 1
 }
 
 Write-Host "================================================" -ForegroundColor Green
-Write-Host "  Todas las imagenes descargadas correctamente" -ForegroundColor Green
+Write-Host "All images downloaded successfully" -ForegroundColor Green
 Write-Host "================================================" -ForegroundColor Green
 Write-Host ""
-Write-Host "Imagenes disponibles localmente:"
-foreach ($img in $IMAGES) {
-    Write-Host "  - $img"
-}
-
+Write-Host "Local images:" -ForegroundColor Cyan
+docker image ls "$REGISTRY/*"
