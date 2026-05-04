@@ -5,7 +5,7 @@
 #   .\scripts\pull-images.ps1
 # ==============================================================
 
-$TAG = "v1.0.0"
+$TAG = "latest"
 $REGISTRY = "necromanoger"
 
 $IMAGES = @(
