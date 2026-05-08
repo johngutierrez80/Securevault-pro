@@ -133,9 +133,10 @@ Estado esperado de entrega:
 - Imagenes publicadas y versionadas en Docker Hub/GHCR.
 - Script de apoyo para descarga de imagenes: scripts/pull-images.ps1.
 - Informe tecnico en PDF.
-- Video de demostracion del ciclo completo.
+- Video de demostracion del ciclo de despliegue: [Ver video](https://uniminuto0-my.sharepoint.com/:v:/g/personal/jherna81_uniminuto_edu_co/IQDKXkT3QqwZQrViDljWGCt0AdUlnprv_MN20rGWoyLWZo4?nav=eyJyZWZlcnJhbEluZm8iOnsicmVmZXJyYWxBcHAiOiJPbmVEcml2ZUZvckJ1c2luZXNzIiwicmVmZXJyYWxBcHBQbGF0Zm9ybSI6IldlYiIsInJlZmVycmFsTW9kZSI6InZpZXciLCJyZWZlcnJhbFZpZXciOiJNeUZpbGVzTGlua0NvcHkifX0&e=afMmrV).
+- Checklist operativo en docs/06_Checklist_Entrega.md.
 
-Checklist operativo en docs/06_Checklist_Entrega.md.
+Observacion: el video  evidencia el despliegue del proyecto en Windows y Linux.
 
 ## 8. Licencia
 
