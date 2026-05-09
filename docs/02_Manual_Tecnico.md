@@ -145,7 +145,7 @@ sequenceDiagram
     participant VAULT as Vault Service
     participant DB as PostgreSQL
 
-    User->>FE: Login(username, password)
+    User->>FE: Login(email, password)
     FE->>GW: POST /auth/login
     GW->>AUTH: Forward request
     AUTH->>DB: Validate user credentials

@@ -71,10 +71,10 @@ Mejoras de seguridad en Dockerfiles:
 | JWT                  | `jsonwebtoken`                            | `PyJWT 2.12.1`                                  |
 | Validación de inputs | Express middleware                        | Pydantic schemas + validación en service layer  |
 | Puerto               | 3001                                      | 8001                                             |
-| Endpoint registro    | `POST /auth/register` (campo: `email`)    | `POST /register` (campo: `username`)            |
-| Endpoint login       | `POST /auth/login`                        | `POST /login`                                   |
+| Endpoint registro    | `POST /register` (campo: `username`)      | `POST /auth/register` (campo: `email`)          |
+| Endpoint login       | `POST /login`                             | `POST /auth/login`                              |
 
-Nota: el campo de identificación cambió de `email` a `username`, lo que se refleja en el frontend y en los endpoints de la API.
+Nota: el campo de identificación cambió de `username` a `email`, lo que se refleja en el frontend y en los endpoints de la API.
 
 ### 3.3 Vault Service
 
@@ -103,7 +103,7 @@ Nota: el campo de identificación cambió de `email` a `username`, lo que se ref
 | Puerto exposición | 5173                                        | 3000 (redirige a :80 del contenedor)              |
 | Gestor de estado  | useState + axios                            | useState + fetch nativo                           |
 | Routing           | No implementado                             | `react-router-dom v6`                             |
-| Campo de login    | `email`                                     | `username`                                        |
+| Campo de login    | `username`                                  | `email`                                           |
 | Mensajes de error | Se renderizaba payload de FastAPI           | Mensajes genéricos (`"Credenciales incorrectas"`) |
 | Tests             | Placeholder (`console.log`)                 | vitest + @testing-library/react                   |
 | Linting           | No configurado                              | ESLint 9 + eslint-plugin-react                    |

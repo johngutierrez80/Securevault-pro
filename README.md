@@ -24,11 +24,11 @@ La plataforma permite a equipos de desarrollo y operaciones almacenar, rotar y a
 - **Integrar herramientas DevSecOps** (SAST, SCA, DAST, threat modeling, monitoreo) en CI/CD.
 - **Proveer infraestructura como código** (IaC) reproducible para despliegue en múltiples entornos.
 
-###  GUÍA RÁPIDA DE INSTALACIÓN
+### GUÍA RÁPIDA DE INSTALACIÓN
 
-→ [Leer Guía de instalación desde código fuente](docs/README_INSTALACION.md)
+→ [Manual Técnico (arquitectura, componentes y endpoints)](docs/02_Manual_Tecnico.md)
 
-→ [Leer Guía de instalación usando Docker Hub](docs/README_DOCKER_HUB.md)
+→ [Manual de Operación y DevOps (arranque, despliegue y validaciones)](docs/03_Manual_Operacion_DevOps.md)
 
 ###  Ubicación Proyecto
 

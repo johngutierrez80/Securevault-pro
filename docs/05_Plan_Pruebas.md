@@ -23,7 +23,7 @@ Validar funcionamiento, seguridad básica y persistencia de SecureVault para la 
 ### CP-02 Registro duplicado
 
 - Dado un usuario existente
-- Cuando envío POST /auth/register con mismo username
+- Cuando envío POST /auth/register con mismo email
 - Entonces retorna 400
 
 ### CP-03 Login exitoso
