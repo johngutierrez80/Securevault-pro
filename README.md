@@ -24,13 +24,13 @@ La plataforma permite a equipos de desarrollo y operaciones almacenar, rotar y a
 - **Integrar herramientas DevSecOps** (SAST, SCA, DAST, threat modeling, monitoreo) en CI/CD.
 - **Proveer infraestructura como código** (IaC) reproducible para despliegue en múltiples entornos.
 
-### 🚀 GUÍA RÁPIDA DE INSTALACIÓN
+###  GUÍA RÁPIDA DE INSTALACIÓN
 
 → [Leer Guía de instalación desde código fuente](docs/README_INSTALACION.md)
 
 → [Leer Guía de instalación usando Docker Hub](docs/README_DOCKER_HUB.md)
 
-### 🧩 Ubicación Proyecto
+###  Ubicación Proyecto
 
 - **Repositorio principal:** https://github.com/johngutierrez80/Securevault-pro
 - **Imágenes Docker:** https://hub.docker.com/repositories/necromanoger
