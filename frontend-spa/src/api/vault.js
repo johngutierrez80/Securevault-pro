@@ -1,7 +1,9 @@
+import { getAuthToken } from "./auth";
+
 function authHeaders() {
   return {
     "Content-Type": "application/json",
-    Authorization: `Bearer ${localStorage.getItem("token")}`,
+    Authorization: `Bearer ${getAuthToken() || ""}`,
   };
 }
 
@@ -32,7 +34,7 @@ export async function updateSecret(id, site, password, category = "other", descr
 export async function deleteSecret(id) {
   const res = await fetch(`/vault/secret/${id}`, {
     method: "DELETE",
-    headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+    headers: { Authorization: `Bearer ${getAuthToken() || ""}` },
   });
   if (!res.ok) throw new Error("Delete failed");
 }

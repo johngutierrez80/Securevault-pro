@@ -3,7 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import LoginPage from "./pages/LoginPage";
 import DashboardPage from "./pages/DashboardPage";
 import AdminPage from "./pages/AdminPage";
-import { getCurrentUser } from "./api/auth";
+import { clearAuthSession, getAuthToken, getCurrentUser } from "./api/auth";
 
 function ProtectedRoute({ children, requiredRole }) {
   const [status, setStatus] = useState("checking");
@@ -13,7 +13,7 @@ function ProtectedRoute({ children, requiredRole }) {
     let mounted = true;
 
     async function validateSession() {
-      const token = localStorage.getItem("token");
+      const token = getAuthToken();
       if (!token) {
         if (mounted) setStatus("unauthenticated");
         return;
@@ -24,7 +24,13 @@ function ProtectedRoute({ children, requiredRole }) {
         if (!mounted) return;
 
         if (ok && data) {
-          localStorage.setItem("user", JSON.stringify(data));
+          const tokenInLocal = localStorage.getItem("token");
+          const tokenInSession = sessionStorage.getItem("token");
+          if (tokenInLocal) {
+            localStorage.setItem("user", JSON.stringify(data));
+          } else if (tokenInSession) {
+            sessionStorage.setItem("user", JSON.stringify(data));
+          }
           setUserRole(data.role);
           
           // Verificar si el usuario tiene el rol requerido
@@ -40,8 +46,7 @@ function ProtectedRoute({ children, requiredRole }) {
         // Falls through to session cleanup.
       }
 
-      localStorage.removeItem("token");
-      localStorage.removeItem("user");
+      clearAuthSession();
       if (mounted) setStatus("unauthenticated");
     }
 
@@ -68,7 +73,7 @@ function RoleBasedRoute() {
 
   useEffect(() => {
     async function checkRole() {
-      const token = localStorage.getItem("token");
+      const token = getAuthToken();
       if (token) {
         try {
           const { ok, data } = await getCurrentUser();

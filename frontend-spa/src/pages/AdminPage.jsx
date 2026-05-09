@@ -1,15 +1,11 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { getUsers, updateUserRole } from "../api/users";
+import { clearAuthSession, getStoredUser } from "../api/auth";
 import "./AdminPage.css";
 
 function readStoredUser() {
-  try {
-    const raw = localStorage.getItem("user");
-    return raw ? JSON.parse(raw) : null;
-  } catch {
-    return null;
-  }
+  return getStoredUser();
 }
 
 export default function AdminPage() {
@@ -45,8 +41,7 @@ export default function AdminPage() {
   }
 
   function logout() {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
+    clearAuthSession();
     navigate("/");
   }
 

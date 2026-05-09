@@ -102,11 +102,6 @@
   background: rgba(11, 11, 22, 0.96);
   box-shadow: 0 14px 34px rgba(0, 0, 0, 0.45);
   padding: 0.85rem;
-  pointer-events: none !important;
-}
-
-.password-help-popover * {
-  pointer-events: none !important;
 }
 
 .password-help-popover::before {

@@ -7,6 +7,7 @@ import LoginPage from "./LoginPage";
 const navigateMock = vi.fn();
 const loginUserMock = vi.fn();
 const registerUserMock = vi.fn();
+const persistAuthSessionMock = vi.fn();
 
 vi.mock("react-router-dom", async () => {
   const actual = await vi.importActual("react-router-dom");
@@ -17,8 +18,13 @@ vi.mock("react-router-dom", async () => {
 });
 
 vi.mock("../api/auth", () => ({
+  clearAuthSession: vi.fn(),
   loginUser: (...args) => loginUserMock(...args),
+  persistAuthSession: (...args) => persistAuthSessionMock(...args),
   registerUser: (...args) => registerUserMock(...args),
+  requestPasswordReset: vi.fn(),
+  resetPassword: vi.fn(),
+  storeUserProfile: vi.fn(),
 }));
 
 function renderLoginPage() {
@@ -32,8 +38,10 @@ function renderLoginPage() {
 beforeEach(() => {
   loginUserMock.mockReset();
   registerUserMock.mockReset();
+  persistAuthSessionMock.mockReset();
   navigateMock.mockReset();
   localStorage.clear();
+  sessionStorage.clear();
 });
 
 describe("LoginPage", () => {
@@ -78,7 +86,11 @@ describe("LoginPage", () => {
         "alice@example.com",
         "SuperSecret1!",
       );
-      expect(localStorage.getItem("token")).toBe("token-de-prueba");
+      expect(persistAuthSessionMock).toHaveBeenCalledWith(
+        "token-de-prueba",
+        { email: "alice@example.com", role: "user" },
+        true,
+      );
       expect(navigateMock).toHaveBeenCalledWith("/boveda");
     });
   });

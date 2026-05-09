@@ -1,12 +1,45 @@
 import { useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
+  clearAuthSession,
   loginUser,
+  persistAuthSession,
   registerUser,
   requestPasswordReset,
   resetPassword,
+  storeUserProfile,
 } from "../api/auth";
 import "./LoginPage.css";
+
+const LAST_LOGIN_EMAIL_KEY = "last_login_email";
+const LAST_LOGIN_EMAIL_TS_KEY = "last_login_email_ts";
+const LAST_LOGIN_EMAIL_TTL_MS = 60 * 60 * 1000;
+
+function readBufferedEmail() {
+  const email = localStorage.getItem(LAST_LOGIN_EMAIL_KEY) || "";
+  const tsRaw = localStorage.getItem(LAST_LOGIN_EMAIL_TS_KEY);
+  const ts = Number(tsRaw);
+
+  if (!email || !Number.isFinite(ts)) {
+    localStorage.removeItem(LAST_LOGIN_EMAIL_KEY);
+    localStorage.removeItem(LAST_LOGIN_EMAIL_TS_KEY);
+    return "";
+  }
+
+  const isExpired = Date.now() - ts > LAST_LOGIN_EMAIL_TTL_MS;
+  if (isExpired) {
+    localStorage.removeItem(LAST_LOGIN_EMAIL_KEY);
+    localStorage.removeItem(LAST_LOGIN_EMAIL_TS_KEY);
+    return "";
+  }
+
+  return email;
+}
+
+function writeBufferedEmail(emailValue) {
+  localStorage.setItem(LAST_LOGIN_EMAIL_KEY, emailValue.trim().toLowerCase());
+  localStorage.setItem(LAST_LOGIN_EMAIL_TS_KEY, String(Date.now()));
+}
 
 function isValidEmail(email) {
   return /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email.trim().toLowerCase());
@@ -64,10 +97,11 @@ function createStrongPassword(length = 20) {
 
 export default function LoginPage() {
   const navigate = useNavigate();
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState(() => readBufferedEmail());
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showPasswordHelp, setShowPasswordHelp] = useState(false);
+  const [rememberMe, setRememberMe] = useState(true);
   const [message, setMessage] = useState({ text: "", isError: true });
   const [showRecovery, setShowRecovery] = useState(false);
   const [recoveryEmail, setRecoveryEmail] = useState("");
@@ -127,10 +161,8 @@ export default function LoginPage() {
     try {
       const { ok, data, status } = await loginUser(email, password);
       if (ok) {
-        localStorage.setItem("token", data.access_token);
-        if (data.user) {
-          localStorage.setItem("user", JSON.stringify(data.user));
-        }
+        writeBufferedEmail(email);
+        persistAuthSession(data.access_token, data.user, rememberMe);
         navigate("/boveda");
       } else {
         setMsg(
@@ -160,8 +192,9 @@ export default function LoginPage() {
     try {
       const { ok, data, status } = await registerUser(email, password);
       if (ok) {
+        writeBufferedEmail(email);
         if (data.user) {
-          localStorage.setItem("user", JSON.stringify(data.user));
+          storeUserProfile(data.user, rememberMe);
         }
         setMsg("Usuario creado. Ahora puedes iniciar sesión.", false);
       } else {
@@ -239,6 +272,7 @@ export default function LoginPage() {
         setResetToken("");
         setNewPassword("");
         setPassword("");
+        clearAuthSession();
         setMsg("Contraseña restablecida. Ya puedes iniciar sesión.", false);
       } else {
         setRecoveryMsg(data.detail || "No fue posible restablecer la contraseña.");
@@ -363,7 +397,8 @@ export default function LoginPage() {
                     className="form-check-input"
                     type="checkbox"
                     id="remember"
-                    defaultChecked
+                    checked={rememberMe}
+                    onChange={(e) => setRememberMe(e.target.checked)}
                   />
                   <label
                     className="form-check-label text-white-50"

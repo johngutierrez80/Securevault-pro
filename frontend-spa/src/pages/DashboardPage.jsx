@@ -6,17 +6,13 @@ import {
   updateSecret,
   deleteSecret,
 } from "../api/vault";
+import { clearAuthSession, getStoredUser } from "../api/auth";
 import "./DashboardPage.css";
 
 const CATEGORY_OPTIONS = ["password", "api_key", "token", "certificate", "other"];
 
 function readStoredUser() {
-  try {
-    const raw = localStorage.getItem("user");
-    return raw ? JSON.parse(raw) : null;
-  } catch {
-    return null;
-  }
+  return getStoredUser();
 }
 
 function SecretCell({ value, category }) {
@@ -196,8 +192,7 @@ export default function DashboardPage() {
   }
 
   function logout() {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
+    clearAuthSession();
     navigate("/");
   }
 

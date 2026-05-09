@@ -3,6 +3,50 @@ async function parseJsonResponse(response) {
   return { ok: response.ok, status: response.status, data };
 }
 
+function readStorageValue(key) {
+  return localStorage.getItem(key) || sessionStorage.getItem(key);
+}
+
+export function getAuthToken() {
+  return readStorageValue("token");
+}
+
+export function getStoredUser() {
+  const raw = readStorageValue("user");
+  if (!raw) return null;
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+}
+
+export function storeUserProfile(user, remember = true) {
+  localStorage.removeItem("user");
+  sessionStorage.removeItem("user");
+  if (!user) return;
+
+  const target = remember ? localStorage : sessionStorage;
+  target.setItem("user", JSON.stringify(user));
+}
+
+export function persistAuthSession(token, user, remember = true) {
+  localStorage.removeItem("token");
+  sessionStorage.removeItem("token");
+  if (token) {
+    const target = remember ? localStorage : sessionStorage;
+    target.setItem("token", token);
+  }
+  storeUserProfile(user, remember);
+}
+
+export function clearAuthSession() {
+  localStorage.removeItem("token");
+  localStorage.removeItem("user");
+  sessionStorage.removeItem("token");
+  sessionStorage.removeItem("user");
+}
+
 export async function loginUser(email, password) {
   const response = await fetch("/auth/login", {
     method: "POST",
@@ -45,7 +89,7 @@ export async function resetPassword(email, resetToken, newPassword) {
 
 export async function getCurrentUser() {
   const response = await fetch("/auth/me", {
-    headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+    headers: { Authorization: `Bearer ${getAuthToken() || ""}` },
   });
   return parseJsonResponse(response);
 }
