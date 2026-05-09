@@ -5,7 +5,7 @@
 }
 
 .login-container {
-  max-width: 420px;
+  max-width: 560px;
 }
 
 .card {
@@ -78,4 +78,87 @@
 .text-link:hover {
   color: #4dd4ff;
   text-decoration: underline;
+}
+
+.password-policy {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 1rem;
+  background: rgba(10, 10, 20, 0.25);
+  padding: 1rem;
+}
+
+.password-help-anchor {
+  position: relative;
+}
+
+.password-help-popover {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(100% + 0.55rem);
+  z-index: 20;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 0.9rem;
+  background: rgba(11, 11, 22, 0.96);
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.45);
+  padding: 0.85rem;
+  pointer-events: none !important;
+}
+
+.password-help-popover * {
+  pointer-events: none !important;
+}
+
+.password-help-popover::before {
+  content: "";
+  position: absolute;
+  top: -7px;
+  left: 34px;
+  width: 12px;
+  height: 12px;
+  background: rgba(11, 11, 22, 0.96);
+  border-left: 1px solid rgba(255, 255, 255, 0.14);
+  border-top: 1px solid rgba(255, 255, 255, 0.14);
+  transform: rotate(45deg);
+}
+
+.policy-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.9rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.75rem;
+}
+
+.policy-ok {
+  background: rgba(25, 135, 84, 0.2);
+  color: #9ae6b4;
+}
+
+.policy-bad {
+  background: rgba(220, 53, 69, 0.16);
+  color: #ffb4b4;
+}
+
+.recovery-panel {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 1rem;
+  background: rgba(8, 8, 16, 0.35);
+}
+
+.recovery-token {
+  min-height: 4.5rem;
+  resize: none;
+}
+
+@media (max-width: 576px) {
+  .password-help-popover {
+    position: static;
+    margin-top: 0.5rem;
+  }
+
+  .password-help-popover::before {
+    display: none;
+  }
 }

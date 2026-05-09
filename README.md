@@ -5,139 +5,434 @@
 [![Container Release](https://github.com/johngutierrez80/Securevault-pro/actions/workflows/container-release.yml/badge.svg)](https://github.com/johngutierrez80/Securevault-pro/actions/workflows/container-release.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
-Proyecto final de Especializacion en Ciberseguridad con enfasis DevSecOps.
+**UNIMINUTO · Especialización en Ciberseguridad · Seguridad Entornos Cloud DevOps**
 
-SecureVault Pro implementa una plataforma para gestion segura de secretos con arquitectura de microservicios y pipeline DevSecOps de ciclo completo.
+---
 
-## 1. Objetivo
+## Descripción del Proyecto
 
-Demostrar integracion end-to-end de practicas DevSecOps:
+SecureVault Pro es una plataforma completa para la **gestión segura de secretos** basada en arquitectura de microservicios. Implementa controles de seguridad en cada etapa del ciclo de vida del desarrollo (Plan → Code → Build → Test → Release → Operate), demostrando un enfoque integral **DevSecOps** con automatización, threat modeling y monitoreo continuo.
 
-- Arquitectura de microservicios contenerizada.
-- Automatizacion CI/CD con controles de seguridad en cada fase.
-- Infraestructura como codigo para despliegue.
-- Evidencia de pruebas, threat modeling y monitoreo.
+La plataforma permite a equipos de desarrollo y operaciones almacenar, rotar y auditar el acceso a secretos (API keys, credenciales, certificados) de forma centralizada, con auditoría completa y cumplimiento de estándares de seguridad.
 
-## 2. Arquitectura
+### Propósito principal
 
-Componentes principales:
+- **Centralizar gestión segura** de secretos con control de acceso basado en roles (RBAC).
+- **Automatizar pipeline DevSecOps** de ciclo completo con controles de seguridad en cada fase.
+- **Implementar arquitectura de microservicios** contenerizada con alta disponibilidad y escalabilidad.
+- **Demostrar auditoría y trazabilidad** completa de acceso a secretos mediante logging inmutable.
+- **Integrar herramientas DevSecOps** (SAST, SCA, DAST, threat modeling, monitoreo) en CI/CD.
+- **Proveer infraestructura como código** (IaC) reproducible para despliegue en múltiples entornos.
 
-- Frontend SPA en React + Vite (frontend-spa/).
-- Auth Service en FastAPI (servicios/auth-service/).
-- Vault Service en FastAPI (servicios/vault-service/).
-- Worker Service asincrono en Python (servicios/worker-service/).
-- PostgreSQL para persistencia.
-- Redis para comunicacion asincrona y soporte de rate limiting.
-- Gateway Nginx para exposicion unificada.
+### 🚀 GUÍA RÁPIDA DE INSTALACIÓN
 
-## 3. Estructura del repositorio
+→ [Leer Guía de instalación desde código fuente](docs/README_INSTALACION.md)
 
-Estructura alineada con la guia del curso:
+→ [Leer Guía de instalación usando Docker Hub](docs/README_DOCKER_HUB.md)
 
-```text
-securevault-pro/
-├── LICENSE
-├── README.md
-├── docker-compose.yml
-├── docker-compose.prod.yml
-├── .github/workflows/
-├── infraestructura/        # IaC (Ansible)
-├── orquestacion/           # Kubernetes/K3s
-├── servicios/              # Microservicios backend + worker
-├── frontend-spa/           # SPA frontend
-├── monitoring/             # Prometheus, Grafana, Loki, Falco
-├── threat-model/           # OWASP Threat Dragon exports
-└── docs/                   # Documentacion academica y tecnica
-```
+### 🧩 Ubicación Proyecto
 
-Notas:
+- **Repositorio principal:** https://github.com/johngutierrez80/Securevault-pro
+- **Imágenes Docker:** https://hub.docker.com/repositories/necromanoger
 
-- versions/ conserva versiones previas del proyecto.
+---
 
-## 4. Quick start
+## Documentación Técnica
 
-Requisitos:
+### Autenticación y seguridad
 
-- Docker + Docker Compose
-- Conexion a internet para descargar las imagenes publicadas en Docker Hub
-- Puertos libres: 3000, 8001, 8002, 5432, 6379
+El módulo de autenticación trabaja con **correo electrónico como identificador**, aplica validación de correo y política mínima de contraseñas al registrar usuarios, y retorna un JWT que incluye el rol del usuario.
 
-Ejecucion local recomendada  usando imagenes publicadas:
+También incorpora un flujo académico de **recuperación de contraseña** mediante token temporal y expone el rol autenticado para que la bóveda pueda mostrarlo.
+
+RBAC implementado:
+
+- Roles soportados: `admin`, `user`.
+- Endpoints administrativos de roles (solo `admin`):
+  - `GET /auth/users` para listar usuarios con rol.
+  - `PATCH /auth/users/{user_id}/role` para promover o degradar roles.
+- Aplicación de rol en vault:
+  - `user` solo gestiona sus propios secretos.
+  - `admin` puede listar, editar y eliminar secretos de cualquier usuario.
+
+Cómo saber quién es admin y quién es user:
+
+- Rol del usuario autenticado: `GET /auth/me`.
+- Listado de usuarios y roles: `GET /auth/users` (requiere rol `admin`).
+
+Bootstrap del primer administrador:
+
+- Todos los registros nuevos inician con rol `user`.
+- El servicio auth **crea automáticamente el primer admin al iniciar** usando credenciales configuradas en `docker-compose.yml`:
+  - Email: `admin@securevault.local`
+  - Contraseña: `AdminSecure123!@#`
+- El bootstrap es **idempotente**: si ya existe un admin, no crea ni modifica otro.
+- Las credenciales están **hardcodeadas** en el archivo de composición, eliminando la necesidad de variables de entorno `.env`.
+
+Ejecución (sin requiere variables de entorno):
 
 ```powershell
-.\scripts\pull-images.ps1
+# Con compilación desde código fuente
+docker compose up -d --build
+
+# O con imágenes publicadas
 $env:IMAGE_TAG = "v1.0.0"
 docker compose -f docker-compose.prod.yml up -d
-docker compose -f docker-compose.prod.yml ps
 ```
 
-Nota: este flujo se ejecuta localmente en el equipo, pero reutiliza las imagenes publicadas en Docker Hub en lugar de reconstruir los servicios desde el codigo fuente.
+**Acceso inicial:**
+- Email: `admin@securevault.local`
+- Contraseña: `AdminSecure123!@#`
 
-Arranque local por build desde codigo fuente:
+**Gestión de roles posterior:**
+- Ese usuario admin puede gestionar roles de otros usuarios usando `PATCH /auth/users/{user_id}/role`.
+- Para promover/degradar roles manualmente en la BD:
+
+```sql
+UPDATE users SET role = 'admin' WHERE email = 'tu_correo@dominio.com';
+```
+
+### Encriptación de secretos y persistencia
+
+- Los secretos se **cifran en reposo** usando Fernet (symmetric encryption) de la librería `cryptography`.
+- La clave de encriptación está **configurada como variable fija** en `docker-compose.yml` (`ENCRYPTION_KEY`).
+- Esta clave **persiste entre reinicios de contenedores**, permitiendo descifrar secretos almacenados previamente.
+- Cuando los contenedores se eliminan pero los volúmenes de PostgreSQL persisten, los datos cifrados se recuperan y descifran correctamente.
+
+### Flujo de procesamiento de secretos
+
+```
+Usuario → POST /auth/login → API valida credenciales + emite JWT
+                                        ↓
+                            HTTP 200 OK + token (inmediato)
+                                        ↓
+                    Cliente almacena token en localStorage
+                                        ↓
+          Usuario → GET /vault/secrets/{id} (con Authorization header)
+                                        ↓
+                    Auth Service valida JWT + RBAC
+                                        ↓
+               Vault Service recupera secret cifrado de BD
+                                        ↓
+                  Secret se descifra usando ENCRYPTION_KEY
+                                        ↓
+                        Retorna secret desencriptado
+                                        ↓
+                        Worker registra evento en DB
+```
+
+> El API implementa validación de JWT stateless con roles, encriptación de secretos en reposo con clave fija persistente y auditoría asincrónica de todos los accesos.
+
+### Estructura del repositorio
+
+```
+securevault-pro/
+├── LICENSE                          # Licencia MIT
+├── README.md                        # Este archivo
+├── docker-compose.yml              # Stack desarrollo
+├── docker-compose.prod.yml         # Stack producción
+├── .github/
+│   └── workflows/                  # Pipelines CI/CD DevSecOps
+├── infraestructura/
+│   └── ansible/                    # IaC - Playbooks Ansible
+├── orquestacion/
+│   └── kubernetes/                 # Manifiestos K3s
+├── servicios/
+│   ├── auth-service/              # FastAPI - Autenticación JWT
+│   ├── vault-service/             # FastAPI - Gestión de secretos
+│   └── worker-service/            # Redis + BLPOP - Procesamiento asincrónico
+├── frontend-spa/                   # React + Vite + Nginx
+├── monitoring/                     # Configuraciones de monitoreo y seguridad
+│   ├── prometheus/                # Prometheus config
+│   ├── grafana/                   # Grafana provisioning
+│   ├── loki/                      # Loki config
+│   ├── promtail/                  # Promtail config
+│   └── falco/                     # Falco rules
+├── threat-model/                   # OWASP Threat Dragon exports
+├── scripts/                        # Utilidades (pull-images, etc.)
+├── versions/                       # Versiones previas del proyecto
+└── docs/                          # Documentación académica y técnica
+```
+
+### Persistencia de datos
+
+La información registrada en la aplicación se guarda principalmente en PostgreSQL. Para evitar que se pierda al eliminar y recrear contenedores, los archivos de datos de PostgreSQL y Redis se montan en volúmenes nombrados.
+
+Esto permite que, después de levantar de nuevo el stack, los usuarios sigan viendo todos los datos previamente guardados:
+
+- `pgdata` → `/var/lib/postgresql/data` (usuarios, secretos cifrados)
+- `redisdata` → `/data` (cola de mensajes, cache de rate limiting)
+
+**Clave de encriptación persistente:**
+- La variable `ENCRYPTION_KEY` en `docker-compose.yml` es una clave Fernet fija.
+- Esto asegura que los secretos cifrados en la BD se puedan descifrar incluso después de:
+  - Detener y reiniciar contenedores
+  - Eliminar contenedores (mientras persistan los volúmenes de datos)
+  - Desplegar en diferentes ambientes (con la misma clave)
+
+**Ejemplo de continuidad:**
+```powershell
+# Crear un secreto
+docker compose up -d
+# ... usuario crea secreto "AWS_KEY" ...
+
+# Detener y eliminar contenedores (pero no volúmenes)
+docker compose down
+
+# Reiniciar - el secreto sigue disponible
+docker compose up -d
+# ... usuario ve "AWS_KEY" intacto ...
+```
+
+---
+
+## Tecnologías Empleadas
+
+### Stack tecnológico principal
+
+| Componente | Tecnología | Versión | Descripción |
+|-----------|-----------|---------|-------------|
+| **Frontend** | React + Vite | 18.x / 5.x | SPA dinámico servido por Nginx. RBAC oculta elementos según rol |
+| **API Backend** | FastAPI + Pydantic | Python 3.12 / 0.104+ | Gateway asincrónico ASGI. JWT stateless con rate limiting |
+| **Worker** | Redis (BLPOP) | 7.0+ | Procesamiento asincrónico de eventos. Cola persistente de jobs |
+| **Message Broker** | Redis | 7.0+ | Cola de mensajes y soporte de rate limiting |
+| **Base de datos** | PostgreSQL | 16 Alpine | Integridad ACID. Migraciones versionadas con Alembic |
+| **Autenticación** | JWT + passlib | HS256 | Auth stateless. bcrypt para passwords |
+| **Proxy/Gateway** | Nginx | Alpine | Reverse proxy. Sirve SPA estática |
+| **Conteneurización** | Docker Compose | v2 | Stack reproducible con healthchecks |
+| **Orquestación** | Kubernetes/K3s | 1.28+ | Alta disponibilidad y escalado horizontal en producción |
+| **CI/CD** | GitHub Actions | — | Pipeline DevSecOps automatizado |
+| **IaC** | Ansible | 2.15+ | Aprovisionamiento de infraestructura |
+| **Secret Scanning** | Gitleaks + TruffleHog | — | Detección de secretos comprometidos |
+| **SAST** | Semgrep | — | Análisis estático de código |
+| **SCA** | Trivy + Dependency-Check + pip-audit | — | Análisis de dependencias y vulnerabilidades |
+| **Dockerfile Lint** | hadolint | — | Validación de mejores prácticas en Dockerfiles |
+| **IaC Security** | Checkov | — | Escaneo de seguridad en IaC |
+| **Testing** | pytest (Python) + vitest (Node.js) | — | Pruebas unitarias y de integración |
+| **DAST** | OWASP ZAP | — | Pruebas dinámicas de seguridad |
+
+### Servicios del stack Docker Compose
+
+| Servicio | Imagen Base | Puerto | RAM |
+|---------|-----------|--------|-----|
+| **auth** | Build local | 8001 | 384 MB |
+| **vault** | Build local | 8002 | 384 MB |
+| **worker** | Build local | — | 384 MB |
+| **gateway** | Build local | 3000 | 128 MB |
+| **postgres** | postgres:16-alpine | 5432 | 512 MB |
+| **redis** | redis:7-alpine | 6379 | 256 MB |
+
+---
+
+## Inicio Rápido (Quick Start)
+
+### Prerrequisitos
+
+| Requisito | Comando de verificación | Versión mínima |
+|----------|----------------------|-----------------|
+| Git | `git --version` | Cualquiera |
+| Docker Engine | `docker --version` | 20.10+ |
+| Docker Compose v2 | `docker compose version` | 2.0+ |
+| RAM disponible | — | 4 GB (8 GB recomendado) |
+| Disco libre | — | ~3 GB para imágenes |
+| Puertos libres | — | 3000, 8001, 8002, 5432, 6379 |
+
+**Nota:** Opcional (solo si desarrollas fuera de Docker): Python 3.12 y Node.js 20.
+
+### Ejecución con imágenes publicadas (recomendado)
 
 ```powershell
+# Descargar imágenes desde Docker Hub
 .\scripts\pull-images.ps1
+
+# Establecer versión
 $env:IMAGE_TAG = "v1.0.0"
-docker compose up -d --build
-docker compose ps
+
+# Iniciar stack con compose producción
+docker compose -f docker-compose.prod.yml up -d
+
+# Verificar estado
+docker compose -f docker-compose.prod.yml ps
+
+# Acceso inmediato
+# - Frontend: http://localhost:3000
+# - Email: admin@securevault.local
+# - Contraseña: AdminSecure123!@#
 ```
 
-Accesos:
+**Características:**
+- No requiere compilación (reutiliza imágenes publicadas en Docker Hub).
+- Las credenciales de bootstrap y clave de encriptación están **preconfiguradas** en `docker-compose.prod.yml`.
+- PostgreSQL y Redis usan volúmenes nombrados para persistencia automática de datos.
 
-- Frontend/Gateway: http://localhost:3000
-- Auth API docs: http://localhost:8001/docs
-- Vault API docs: http://localhost:8002/docs
+### Ejecución con compilación desde código fuente
 
-## 5. Pipeline DevSecOps
+```powershell
+# Descargar imágenes base
+.\scripts\pull-images.ps1
 
-Workflows principales:
+# Establecer versión (opcional, para tagging local)
+$env:IMAGE_TAG = "v1.0.0"
 
-- .github/workflows/ci-devsecops.yml
-- .github/workflows/container-release.yml
-- .github/workflows/dast-zap.yml
-- .github/workflows/deploy-production.yml
+# Construir y ejecutar
+docker compose up -d --build
 
-Controles implementados:
+# Verificar estado
+docker compose ps
 
-- Plan: Threat modeling con OWASP Threat Dragon.
-- Code: secret scanning, SAST y SCA.
-- Build: construccion y escaneo de imagenes.
-- Test: pruebas backend/frontend y DAST con OWASP ZAP.
-- Release/Deploy: publicacion de imagenes + despliegue automatizado.
-- Operate/Monitor: Prometheus, Grafana, Loki/Promtail y Falco.
+# Acceso inmediato
+# - Frontend: http://localhost:3000
+# - Email: admin@securevault.local
+# - Contraseña: AdminSecure123!@#
+```
 
-## 6. Documentacion
+**Características:**
+- Compila los servicios (`auth`, `vault`, `worker`, `gateway`) desde Dockerfile locales.
+- Las credenciales de bootstrap y clave de encriptación están **preconfiguradas** en `docker-compose.yml`.
+- PostgreSQL y Redis usan volúmenes nombrados para persistencia automática.
 
-Documentos principales en docs/:
+### Accesos después de iniciar
 
-- 01_Manual_Usuario.md
-- 02_Manual_Tecnico.md
-- 03_Manual_Operacion_DevOps.md
-- 04_Seguridad_y_Riesgos.md
-- 05_Plan_Pruebas.md
-- 06_Checklist_Entrega.md
-- 07_SecureVault_Threat_Dragon.json
-- 08_SecureVault_CICD_Threat_Dragon.json
+| Componente | URL | Credenciales | Descripción |
+|-----------|-----|--------------|-------------|
+| **Frontend** | http://localhost:3000 | admin@securevault.local / AdminSecure123!@# | Interfaz de usuario SPA |
+| **Auth API Docs** | http://localhost:8001/docs | — | Swagger - Autenticación |
+| **Vault API Docs** | http://localhost:8002/docs | — | Swagger - Gestión de secretos |
 
-Diagramas clave para sustentacion:
+**Primer acceso:**
+- El usuario administrador se crea automáticamente al iniciar el stack.
+- Email: `admin@securevault.local`
+- Contraseña: `AdminSecure123!@#`
+- Rol: `admin` (acceso a todos los secretos y gestión de usuarios)
 
-- DFD Nivel 0 y DFD Nivel 1: docs/02_Manual_Tecnico.md (secciones 4 y 5).
-- Diagrama de Casos de Uso: docs/02_Manual_Tecnico.md (seccion 3).
-- Threat models (OWASP Threat Dragon): threat-model/ y docs/07_*.json + docs/08_*.json.
+---
 
-## 7. Entregables academicos
+## Pipeline CI/CD (DevSecOps)
 
-Estado esperado de entrega:
+Cada `push` o `pull_request` en la rama `main` ejecuta automáticamente:
 
-- Repositorio GitHub publico con codigo, pipelines, IaC y documentacion.
-- Imagenes publicadas y versionadas en Docker Hub/GHCR.
-- Script de apoyo para descarga de imagenes: scripts/pull-images.ps1.
-- Informe tecnico en PDF.
-- Video de demostracion del ciclo de despliegue: [Ver video](https://uniminuto0-my.sharepoint.com/:v:/g/personal/jherna81_uniminuto_edu_co/IQDKXkT3QqwZQrViDljWGCt0AdUlnprv_MN20rGWoyLWZo4?nav=eyJyZWZlcnJhbEluZm8iOnsicmVmZXJyYWxBcHAiOiJPbmVEcml2ZUZvckJ1c2luZXNzIiwicmVmZXJyYWxBcHBQbGF0Zm9ybSI6IldlYiIsInJlZmVycmFsTW9kZSI6InZpZXciLCJyZWZlcnJhbFZpZXciOiJNeUZpbGVzTGlua0NvcHkifX0&e=afMmrV).
-- Checklist operativo en docs/06_Checklist_Entrega.md.
+```
+[security]                [build]              [test]
+Gitleaks               →  docker build    →  pytest (backend)
+TruffleHog             →  trivy scan      →  vitest (frontend)
+Semgrep                →  hadolint        →  ZAP baseline (DAST)
+Bandit                 →  dependency-check→
+pip-audit              →  checkov (IaC)   →
+npm audit              →
+```
 
-Observacion: el video  evidencia el despliegue del proyecto en Windows y Linux.
+**Workflows configurados:**
 
-## 8. Licencia
+| Workflow | Archivo | Triggers | Controles |
+|----------|---------|----------|-----------|
+| **CI DevSecOps** | `.github/workflows/ci-devsecops.yml` | push, PR | SAST, SCA, build, test |
+| **Container Release** | `.github/workflows/container-release.yml` | push a main | Build + Push a Docker Hub |
+| **DAST ZAP** | `.github/workflows/dast-zap.yml` | push, PR | Escaneo dinámico de seguridad |
+| **Deploy Production** | `.github/workflows/deploy-production.yml` | release | Deploy a infraestructura |
 
-Este proyecto usa licencia MIT. Ver LICENSE.
+**Controles implementados en cada etapa:**
+
+- **Plan:** Threat modeling con OWASP Threat Dragon.
+- **Code:** 
+  - Secret scanning: Gitleaks + TruffleHog
+  - SAST: Semgrep + Bandit
+  - SCA: Trivy filesystem + Dependency-Check + pip-audit + npm audit
+- **Build:** 
+  - Construcción de imágenes Docker
+  - Escaneo de vulnerabilidades (Trivy)
+  - Validación de Dockerfiles (hadolint)
+  - Escaneo IaC (Checkov)
+- **Test:** 
+  - Pruebas unitarias backend (pytest)
+  - Pruebas unitarias frontend (vitest)
+  - Pruebas dinámicas (OWASP ZAP)
+- **Release/Deploy:** Publicación de imágenes versionadas en Docker Hub + despliegue automatizado.
+- **Operate:** Configuraciones de monitoreo disponibles (Prometheus, Grafana, Loki/Promtail, Falco) - ver `monitoring/` para integración.
+
+---
+
+## Documentación del Proyecto
+
+SecureVault Pro cuenta con documentación técnica completa organizada en manuales especializados. Cada uno está pensado para un perfil distinto — desde el usuario final hasta el equipo de infraestructura.
+
+### Manual de Usuario
+
+¿Eres usuario final y quieres aprender a usar la plataforma?
+
+El manual de usuario guía paso a paso: inicio de sesión, gestión de secretos, auditoría de accesos y controles de rol. Incluye el flujo recomendado y resolución de errores frecuentes.
+
+→ [Leer Manual de Usuario](docs/01_Manual_Usuario.md)
+
+### Manual Técnico
+
+¿Quieres entender cómo está construido SecureVault Pro por dentro?
+
+El manual técnico describe en detalle la arquitectura de microservicios, las decisiones de diseño, los patrones implementados y los 7 diagramas UML completos: Componentes, Despliegue, Secuencia de autenticación, Casos de Uso RBAC, DFD Nivel 0 y DFD Nivel 1.
+
+→ [Leer Manual Técnico](docs/02_Manual_Tecnico.md)
+
+### Manual de Operación DevOps
+
+¿Necesitas gestionar el despliegue y el día a día operativo?
+
+El manual operativo cubre la gestión de la infraestructura con Ansible, escalado con Kubernetes, playbooks para tareas comunes como rotación de secretos y backups, y guía de integración de herramientas de monitoreo opcionales (Prometheus, Grafana, Loki/Promtail).
+
+→ [Leer Manual de Operación](docs/03_Manual_Operacion_DevOps.md)
+
+### Seguridad y Gestión de Riesgos
+
+¿Quieres conocer el modelo de amenazas y cómo se gestionan las vulnerabilidades?
+
+Este documento describe el modelo de amenazas (STRIDE), los activos protegidos, los actores del sistema, la matriz de riesgos con SLA por severidad, y la política de divulgación responsable.
+
+→ [Leer Análisis de Seguridad](docs/04_Seguridad_y_Riesgos.md)
+
+### Plan de Pruebas
+
+¿Necesitas conocer la estrategia de testing del proyecto?
+
+El plan de pruebas detalla las pruebas unitarias, de integración, de carga y de seguridad ejecutadas en cada etapa del pipeline. Incluye cobertura esperada y resultados de ejecución.
+
+→ [Leer Plan de Pruebas](docs/05_Plan_Pruebas.md)
+
+### Checklist de Entrega
+
+¿Estás validando que el proyecto cumple todos los requisitos de entrega?
+
+El checklist operativo detalla todos los entregables esperados, criterios de aceptación y evidencia de cumplimiento: repositorio, imagenes versionadas, documentación, video, informe técnico y pruebas.
+
+→ [Leer Checklist de Entrega](docs/06_Checklist_Entrega.md)
+
+### Modelado de Amenazas (OWASP Threat Dragon)
+
+**Modelos de amenazas del proyecto:**
+
+- [SecureVault Threat Dragon (Sistema Operativo)](docs/07_SecureVault_Threat_Dragon.json) — Threat model completo del flujo de secretos y autenticación.
+- [SecureVault CICD Threat Dragon (Pipeline)](docs/08_SecureVault_CICD_Threat_Dragon.json) — Threat model del pipeline CI/CD y automatización.
+
+### Video de Demostración
+
+→ [Ver video explicativo del ciclo DevSecOps completo](https://uniminuto0-my.sharepoint.com/:v:/g/personal/jherna81_uniminuto_edu_co/IQDKXkT3QqwZQrViDljWGCt0AdUlnprv_MN20rGWoyLWZo4?nav=eyJyZWZlcnJhbEluZm8iOnsicmVmZXJyYWxBcHAiOiJPbmVEcml2ZUZvckJ1c2luZXNzIiwicmVmZXJyYWxBcHBQbGF0Zm9ybSI6IldlYiIsInJlZmVycmFsTW9kZSI6InZpZXciLCJyZWZlcnJhbFZpZXciOiJNeUZpbGVzTGlua0NvcHkifX0&e=afMmrV)
+
+**Nota:** El video evidencia despliegue tanto en Windows como en Linux.
+
+---
+
+## Autores
+
+| Rol | Nombre | Institución |
+|-----|--------|-------------|
+| Integrante | Leidy Dayana Avendaño Moreno | UNIMINUTO — Especialización en Ciberseguridad |
+| Integrante | Jeisson Andres Hernandez Martinez | UNIMINUTO — Especialización en Ciberseguridad |
+| Integrante | Michael Giovanny Sierra Leon | UNIMINUTO — Especialización en Ciberseguridad |
+| Integrante | John Edilvar Gutierrez Rojas | UNIMINUTO — Especialización en Ciberseguridad |
+
+---
+
+## Licencia
+
+Este proyecto está distribuido bajo la licencia MIT. Ver el archivo [LICENSE](LICENSE) para más detalles.
+
+---
+
+**SecureVault Pro** · UNIMINUTO · Especialización en Ciberseguridad · Seguridad Entornos Cloud DevOps

@@ -86,7 +86,7 @@ Validar funcionamiento, seguridad básica y persistencia de SecureVault para la 
 
 ## 5. Evidencias para anexar en entrega
 
-- Capturas de login, dashboard y CRUD.
+- Capturas de login, bóveda y CRUD.
 - Capturas de consultas SQL en users y secrets.
 - Captura de respuesta 401 sin token.
 - Captura de respuesta 429 por rate limiting.

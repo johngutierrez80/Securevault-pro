@@ -2,6 +2,9 @@ services:
   auth:
     image: docker.io/necromanoger/securevault-auth:${IMAGE_TAG}
     restart: unless-stopped
+    environment:
+      BOOTSTRAP_ADMIN_EMAIL: admin@securevault.local
+      BOOTSTRAP_ADMIN_PASSWORD: AdminSecure123!@#
     depends_on:
       postgres:
         condition: service_healthy
@@ -9,6 +12,8 @@ services:
   vault:
     image: docker.io/necromanoger/securevault-vault:${IMAGE_TAG}
     restart: unless-stopped
+    environment:
+      ENCRYPTION_KEY: "GmZ-xxg5FHVoxvS7hwsNOHYPgrlefsRIa74WRSZoYDc="
     depends_on:
       postgres:
         condition: service_healthy
@@ -40,6 +45,8 @@ services:
   redis:
     image: redis:7-alpine
     restart: unless-stopped
+    volumes:
+      - redisdata:/data
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
@@ -123,5 +130,6 @@ services:
 
 volumes:
   pgdata:
+  redisdata:
   grafana-data:
   loki-data:

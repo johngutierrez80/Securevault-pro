@@ -26,12 +26,12 @@ Este documento explica el uso funcional de SecureVault para usuarios finales: cr
 
 1. Ingresar usuario y contraseña.
 2. Presionar Iniciar Sesión.
-3. Si las credenciales son válidas, se abre el dashboard.
+3. Si las credenciales son válidas, se abre la bóveda.
 4. Si no son válidas, se muestra el mensaje: Credenciales incorrectas.
 
 ### 3.3 Guardar una contraseña
 
-1. En el dashboard, escribir Sitio/Aplicación.
+1. En la bóveda, escribir Sitio/Aplicación.
 2. Escribir Contraseña.
 3. Presionar Guardar.
 4. Se actualiza la tabla de la bóveda.

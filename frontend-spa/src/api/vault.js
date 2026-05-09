@@ -11,20 +11,20 @@ export async function getSecrets() {
   return res.json();
 }
 
-export async function saveSecret(site, password) {
+export async function saveSecret(site, password, category = "other", description = "") {
   const res = await fetch("/vault/secret", {
     method: "POST",
     headers: authHeaders(),
-    body: JSON.stringify({ site, password }),
+    body: JSON.stringify({ site, password, category, description }),
   });
   if (!res.ok) throw new Error("Save failed");
 }
 
-export async function updateSecret(id, site, password) {
+export async function updateSecret(id, site, password, category = "other", description = "") {
   const res = await fetch(`/vault/secret/${id}`, {
     method: "PUT",
     headers: authHeaders(),
-    body: JSON.stringify({ site, password }),
+    body: JSON.stringify({ site, password, category, description }),
   });
   if (!res.ok) throw new Error("Update failed");
 }

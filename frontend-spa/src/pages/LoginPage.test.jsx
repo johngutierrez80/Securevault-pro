@@ -56,42 +56,63 @@ describe("LoginPage", () => {
     const user = userEvent.setup();
     loginUserMock.mockResolvedValue({
       ok: true,
-      data: { access_token: "token-de-prueba" },
+      data: {
+        access_token: "token-de-prueba",
+        user: { email: "alice@example.com", role: "user" },
+      },
     });
 
     renderLoginPage();
 
-    await user.type(screen.getByPlaceholderText(/usuario/i), "alice");
+    await user.type(screen.getByPlaceholderText(/correo/i), "alice@example.com");
     await user.type(
       screen.getByPlaceholderText(/••••••••••••/i),
-      "super-secret",
+      "SuperSecret1!",
     );
     await user.click(
       screen.getByRole("button", { name: /iniciar sesi[óo]n/i }),
     );
 
     await waitFor(() => {
-      expect(loginUserMock).toHaveBeenCalledWith("alice", "super-secret");
+      expect(loginUserMock).toHaveBeenCalledWith(
+        "alice@example.com",
+        "SuperSecret1!",
+      );
       expect(localStorage.getItem("token")).toBe("token-de-prueba");
-      expect(navigateMock).toHaveBeenCalledWith("/dashboard");
+      expect(navigateMock).toHaveBeenCalledWith("/boveda");
     });
   });
 
   it("shows a success message after a successful registration", async () => {
     const user = userEvent.setup();
-    registerUserMock.mockResolvedValue({ ok: true, data: {} });
+    registerUserMock.mockResolvedValue({
+      ok: true,
+      data: { user: { email: "alice@example.com", role: "user" } },
+    });
 
     renderLoginPage();
 
-    await user.type(screen.getByPlaceholderText(/usuario/i), "alice");
+    await user.type(screen.getByPlaceholderText(/correo/i), "alice@example.com");
     await user.type(
       screen.getByPlaceholderText(/••••••••••••/i),
-      "super-secret",
+      "SuperSecret1!",
     );
     await user.click(
       screen.getByRole("button", { name: /crear cuenta gratuita/i }),
     );
 
     expect(await screen.findByText(/usuario creado/i)).toBeInTheDocument();
+  });
+
+  it("shows password policy hints for weak passwords", async () => {
+    const user = userEvent.setup();
+
+    renderLoginPage();
+
+    await user.type(screen.getByPlaceholderText(/correo/i), "alice@example.com");
+    await user.type(screen.getByPlaceholderText(/••••••••••••/i), "weak");
+
+    expect(await screen.findByText(/al menos 10 caracteres/i)).toBeInTheDocument();
+    expect(await screen.findByText(/una letra mayúscula/i)).toBeInTheDocument();
   });
 });

@@ -14,10 +14,18 @@ def save_secret(
     site: str,
     password: str,
     owner: str,
+    category: str = "other",
+    description: str = "",
     expires_in_days: int | None = None,
 ):
     enc = encrypt(password)
-    secret = Secret(site=site, encrypted_password=enc, owner=owner)
+    secret = Secret(
+        site=site,
+        encrypted_password=enc,
+        category=category,
+        description=description,
+        owner=owner,
+    )
     db.add(secret)
     db.commit()
     db.refresh(secret)
@@ -33,7 +41,28 @@ def save_secret(
 def get_secrets(db: Session, owner: str):
     secrets = db.query(Secret).filter(Secret.owner == owner).all()
     return [
-        {"id": s.id, "site": s.site, "password": decrypt(s.encrypted_password)}
+        {
+            "id": s.id,
+            "site": s.site,
+            "password": decrypt(s.encrypted_password),
+            "category": s.category,
+            "description": s.description,
+        }
+        for s in secrets
+    ]
+
+
+def get_all_secrets(db: Session):
+    secrets = db.query(Secret).all()
+    return [
+        {
+            "id": s.id,
+            "site": s.site,
+            "password": decrypt(s.encrypted_password),
+            "category": s.category,
+            "description": s.description,
+            "owner": s.owner,
+        }
         for s in secrets
     ]
 
@@ -44,12 +73,18 @@ def get_secret(db: Session, owner: str, secret_id: int):
     )
 
 
+def get_secret_by_id(db: Session, secret_id: int):
+    return db.query(Secret).filter(Secret.id == secret_id).first()
+
+
 def update_secret(
     db: Session,
     secret_id: int,
     owner: str,
     site: str,
     password: str,
+    category: str = "other",
+    description: str = "",
     expires_in_days: int | None = None,
 ):
     secret = get_secret(db, owner, secret_id)
@@ -57,6 +92,8 @@ def update_secret(
         return None
     secret.site = site
     secret.encrypted_password = encrypt(password)
+    secret.category = category
+    secret.description = description
     db.commit()
     db.refresh(secret)
 
@@ -65,6 +102,41 @@ def update_secret(
         schedule_secret_expiration(secret.id, owner, int(expires_at.timestamp()))
 
     enqueue_security_event("secret_updated", owner, site, {"secret_id": secret.id})
+    return secret
+
+
+def update_secret_admin(
+    db: Session,
+    secret_id: int,
+    actor: str,
+    site: str,
+    password: str,
+    category: str = "other",
+    description: str = "",
+    expires_in_days: int | None = None,
+):
+    secret = get_secret_by_id(db, secret_id)
+    if not secret:
+        return None
+
+    owner = secret.owner
+    secret.site = site
+    secret.encrypted_password = encrypt(password)
+    secret.category = category
+    secret.description = description
+    db.commit()
+    db.refresh(secret)
+
+    if expires_in_days is not None:
+        expires_at = datetime.now(timezone.utc) + timedelta(days=expires_in_days)
+        schedule_secret_expiration(secret.id, owner, int(expires_at.timestamp()))
+
+    enqueue_security_event(
+        "secret_updated_admin",
+        actor,
+        site,
+        {"secret_id": secret.id, "owner": owner},
+    )
     return secret
 
 
@@ -78,4 +150,24 @@ def delete_secret(db: Session, secret_id: int, owner: str):
 
     clear_secret_expiration(secret_id, owner)
     enqueue_security_event("secret_deleted", owner, site, {"secret_id": secret_id})
+    return True
+
+
+def delete_secret_admin(db: Session, secret_id: int, actor: str):
+    secret = get_secret_by_id(db, secret_id)
+    if not secret:
+        return False
+
+    owner = secret.owner
+    site = secret.site
+    db.delete(secret)
+    db.commit()
+
+    clear_secret_expiration(secret_id, owner)
+    enqueue_security_event(
+        "secret_deleted_admin",
+        actor,
+        site,
+        {"secret_id": secret_id, "owner": owner},
+    )
     return True

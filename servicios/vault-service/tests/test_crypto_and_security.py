@@ -1,6 +1,6 @@
 import pytest
 from app.core.config import settings
-from app.core.security import verify_token
+from app.core.security import verify_token, verify_token_context
 from app.utils.crypto import decrypt, encrypt
 from fastapi import HTTPException
 from fastapi.security import HTTPAuthorizationCredentials
@@ -33,3 +33,16 @@ def test_verify_token_raises_for_invalid_jwt():
         verify_token(credentials)
 
     assert exc_info.value.status_code == 401
+
+
+def test_verify_token_context_returns_user_and_role():
+    token = jwt.encode(
+        {"user": "admin@example.com", "role": "admin"},
+        settings.secret_key,
+        algorithm=settings.algorithm,
+    )
+    credentials = HTTPAuthorizationCredentials(scheme="Bearer", credentials=token)
+
+    context = verify_token_context(credentials)
+
+    assert context == {"user": "admin@example.com", "role": "admin"}

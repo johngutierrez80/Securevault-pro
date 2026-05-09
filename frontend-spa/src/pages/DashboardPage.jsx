@@ -8,73 +8,116 @@ import {
 } from "../api/vault";
 import "./DashboardPage.css";
 
-function PasswordCell({ password }) {
+const CATEGORY_OPTIONS = ["password", "api_key", "token", "certificate", "other"];
+
+function readStoredUser() {
+  try {
+    const raw = localStorage.getItem("user");
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+function SecretCell({ value, category }) {
   const [visible, setVisible] = useState(false);
+  const isMasked =
+    category === "password" || category === "api_key" || category === "token";
+
   return (
-    <div className="input-group input-group-sm vault-pass-group">
-      <span className="input-group-text">
-        <i className="bi bi-key"></i>
-      </span>
+    <div className="secret-cell">
       <input
-        className="form-control password-cell"
-        type={visible ? "text" : "password"}
-        value={password}
+        className="form-control secret-input"
+        type={visible && isMasked ? "text" : isMasked ? "password" : "text"}
+        value={value}
         readOnly
         onChange={() => {}}
       />
-      <button
-        className="btn btn-outline-secondary"
-        type="button"
-        title="Mostrar u ocultar contraseña"
-        onClick={() => setVisible((v) => !v)}
-      >
-        <i className={`bi ${visible ? "bi-eye-slash" : "bi-eye"}`}></i>
-      </button>
+      {isMasked && (
+        <button
+          className="btn-show-secret"
+          type="button"
+          title="Mostrar u ocultar"
+          onClick={() => setVisible((v) => !v)}
+        >
+          <i className={`bi ${visible ? "bi-eye-slash" : "bi-eye"}`}></i>
+        </button>
+      )}
     </div>
   );
 }
 
 function EditModal({ secret, onClose, onSave }) {
-  const [site, setSite] = useState(secret.site);
-  const [password, setPassword] = useState(secret.password);
+  const [name, setName] = useState(secret.site || "");
+  const [category, setCategory] = useState(secret.category || "other");
+  const [value, setValue] = useState(secret.password || "");
+  const [description, setDescription] = useState(secret.description || "");
   const [loading, setLoading] = useState(false);
 
   async function handleSave() {
-    if (!site.trim() || !password.trim()) return;
+    if (!name.trim() || !value.trim()) return;
     setLoading(true);
-    await onSave(secret.id, site, password);
+    await onSave(secret.id, name, value, category, description);
     setLoading(false);
   }
 
   return (
     <div className="edit-backdrop" onClick={onClose}>
       <div className="edit-dialog" onClick={(e) => e.stopPropagation()}>
-        <div className="card p-4">
-          <h5 className="mb-3">Editar secreto</h5>
-          <div className="mb-3">
-            <label className="form-label fw-medium">Sitio / Aplicación</label>
+        <div className="edit-modal-card">
+          <h5 className="edit-modal-title">Editar secreto</h5>
+          
+          <div className="edit-form-group">
+            <label className="form-label">Nombre</label>
             <input
               className="form-control"
-              value={site}
-              onChange={(e) => setSite(e.target.value)}
+              value={name}
+              onChange={(e) => setName(e.target.value)}
               autoFocus
             />
           </div>
-          <div className="mb-3">
-            <label className="form-label fw-medium">Contraseña</label>
+
+          <div className="edit-form-group">
+            <label className="form-label">Categoría</label>
+            <select
+              className="form-control"
+              value={category}
+              onChange={(e) => setCategory(e.target.value)}
+            >
+              {CATEGORY_OPTIONS.map((opt) => (
+                <option key={opt} value={opt}>
+                  {opt}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="edit-form-group">
+            <label className="form-label">Valor del secreto</label>
             <input
               className="form-control"
               type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              value={value}
+              onChange={(e) => setValue(e.target.value)}
             />
           </div>
-          <div className="d-flex gap-2 justify-content-end">
+
+          <div className="edit-form-group">
+            <label className="form-label">Descripción (opcional)</label>
+            <textarea
+              className="form-control"
+              rows="2"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+            />
+          </div>
+
+          <div className="edit-modal-actions">
             <button className="btn btn-secondary" onClick={onClose}>
               Cancelar
             </button>
             <button
-              className="btn btn-warning"
+              className="btn btn-primary"
               onClick={handleSave}
               disabled={loading}
             >
@@ -91,11 +134,14 @@ export default function DashboardPage() {
   const navigate = useNavigate();
   const [secrets, setSecrets] = useState([]);
   const [loadError, setLoadError] = useState("");
-  const [site, setSite] = useState("");
-  const [password, setPassword] = useState("");
-  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [name, setName] = useState("");
+  const [category, setCategory] = useState("other");
+  const [value, setValue] = useState("");
+  const [description, setDescription] = useState("");
+  const [showNewValue, setShowNewValue] = useState(false);
   const [saveError, setSaveError] = useState("");
   const [editTarget, setEditTarget] = useState(null);
+  const [currentUser] = useState(() => readStoredUser());
 
   const loadSecrets = useCallback(async () => {
     try {
@@ -112,14 +158,16 @@ export default function DashboardPage() {
   }, [loadSecrets]);
 
   async function handleSave() {
-    if (!site.trim() || !password.trim()) {
-      setSaveError("El sitio y la contraseña son requeridos.");
+    if (!name.trim() || !value.trim()) {
+      setSaveError("El nombre y el valor del secreto son requeridos.");
       return;
     }
     try {
-      await saveSecret(site, password);
-      setSite("");
-      setPassword("");
+      await saveSecret(name, value, category, description);
+      setName("");
+      setValue("");
+      setCategory("other");
+      setDescription("");
       setSaveError("");
       await loadSecrets();
     } catch {
@@ -137,9 +185,9 @@ export default function DashboardPage() {
     }
   }
 
-  async function handleEditSave(id, newSite, newPassword) {
+  async function handleEditSave(id, newName, newValue, newCategory, newDescription) {
     try {
-      await updateSecret(id, newSite, newPassword);
+      await updateSecret(id, newName, newValue, newCategory, newDescription);
       setEditTarget(null);
       await loadSecrets();
     } catch {
@@ -149,11 +197,12 @@ export default function DashboardPage() {
 
   function logout() {
     localStorage.removeItem("token");
+    localStorage.removeItem("user");
     navigate("/");
   }
 
   return (
-    <div className="dashboard-bg">
+    <div className="vault-page">
       {editTarget && (
         <EditModal
           secret={editTarget}
@@ -162,160 +211,205 @@ export default function DashboardPage() {
         />
       )}
 
-      <nav className="navbar navbar-expand-lg navbar-dark bg-dark shadow-sm">
-        <div className="container-fluid px-4">
-          <a className="navbar-brand d-flex align-items-center gap-2" href="#">
-            <i className="bi bi-shield-lock-fill fs-4"></i>
-            SecureVault
-          </a>
-          <div className="ms-auto d-flex align-items-center gap-3">
-            <span className="text-white-50 small">Bóveda personal</span>
-            <button
-              className="btn btn-outline-light btn-sm px-3"
-              onClick={logout}
-            >
-              <i className="bi bi-box-arrow-right me-1"></i> Cerrar sesión
-            </button>
+      <header className="vault-topbar">
+        <div className="vault-brand">
+          <i className="bi bi-shield-lock-fill"></i>
+          <div>
+            <h1>SecureVault Pro</h1>
+            <p>Panel de gestión de secretos cifrados</p>
           </div>
         </div>
-      </nav>
 
-      <main className="container py-5">
-        <div className="row justify-content-center">
-          <div className="col-lg-10 col-xl-8">
-            {/* Save new secret */}
-            <div className="card mb-5">
-              <div className="card-body p-4 p-md-5">
-                <h4 className="card-title mb-4 d-flex align-items-center gap-2">
-                  <i className="bi bi-plus-circle-fill text-success"></i>
-                  Guardar nueva contraseña
-                </h4>
-                <div className="row g-3">
-                  <div className="col-md-5">
-                    <label className="form-label fw-medium">
-                      Sitio / Aplicación
-                    </label>
-                    <div className="input-group">
-                      <span className="input-group-text">
-                        <i className="bi bi-globe"></i>
-                      </span>
-                      <input
-                        type="text"
-                        className="form-control"
-                        placeholder="ej. netflix.com, gmail.com"
-                        value={site}
-                        onChange={(e) => setSite(e.target.value)}
-                        autoComplete="off"
-                      />
-                    </div>
-                  </div>
-                  <div className="col-md-5">
-                    <label className="form-label fw-medium">Contraseña</label>
-                    <div className="input-group">
-                      <span className="input-group-text">
-                        <i className="bi bi-key"></i>
-                      </span>
-                      <input
-                        type={showNewPassword ? "text" : "password"}
-                        className="form-control"
-                        placeholder="••••••••••••"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        autoComplete="new-password"
-                      />
-                      <button
-                        className="btn btn-outline-secondary"
-                        type="button"
-                        onClick={() => setShowNewPassword((v) => !v)}
-                      >
-                        <i
-                          className={`bi ${showNewPassword ? "bi-eye-slash" : "bi-eye"}`}
-                        ></i>
-                      </button>
-                    </div>
-                  </div>
-                  <div className="col-md-2 d-flex align-items-end">
-                    <button
-                      className="btn btn-success w-100"
-                      onClick={handleSave}
-                    >
-                      <i className="bi bi-save me-1"></i> Guardar
-                    </button>
-                  </div>
-                </div>
-                {saveError && (
-                  <div className="text-danger mt-3 small">{saveError}</div>
-                )}
-              </div>
-            </div>
-
-            {/* Secrets list */}
-            <div className="card">
-              <div className="card-header bg-white border-0 pt-4 pb-0 px-4 px-md-5">
-                <h4 className="mb-0 d-flex align-items-center gap-2">
-                  <i className="bi bi-safe2-fill text-primary"></i>
-                  Mi Vault
-                </h4>
-              </div>
-              <div className="card-body p-4 p-md-5">
-                {loadError ? (
-                  <p className="text-danger">{loadError}</p>
-                ) : secrets.length === 0 ? (
-                  <div className="text-center py-5">
-                    <i
-                      className="bi bi-safe text-muted"
-                      style={{ fontSize: "4rem" }}
-                    ></i>
-                    <p className="mt-3 text-muted">
-                      Tu bóveda está vacía.
-                      <br />
-                      Comienza guardando tu primera contraseña.
-                    </p>
-                  </div>
-                ) : (
-                  <div className="table-responsive">
-                    <table className="table table-hover align-middle">
-                      <thead>
-                        <tr>
-                          <th scope="col">Sitio / Servicio</th>
-                          <th scope="col">Contraseña</th>
-                          <th scope="col" className="text-end">
-                            Acciones
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {secrets.map((s) => (
-                          <tr key={s.id}>
-                            <td>{s.site}</td>
-                            <td>
-                              <PasswordCell password={s.password} />
-                            </td>
-                            <td className="text-end">
-                              <button
-                                className="btn btn-sm btn-warning me-1 action-btn"
-                                title="Editar"
-                                onClick={() => setEditTarget(s)}
-                              >
-                                <i className="bi bi-pencil"></i>
-                              </button>
-                              <button
-                                className="btn btn-sm btn-danger action-btn"
-                                title="Eliminar"
-                                onClick={() => handleDelete(s.id)}
-                              >
-                                <i className="bi bi-trash"></i>
-                              </button>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-              </div>
-            </div>
+        <div className="vault-userbox">
+          <div>
+            <p className="vault-user-email">{currentUser?.email || "usuario@local"}</p>
+            <p className="vault-user-role">Rol: {currentUser?.role || "user"}</p>
           </div>
+          <button
+            className="btn btn-outline-light btn-sm"
+            onClick={logout}
+          >
+            <i className="bi bi-box-arrow-right me-1"></i>
+            Cerrar sesión
+          </button>
+        </div>
+      </header>
+
+      <main className="vault-main">
+        <section className="vault-stats">
+          <article className="stat-card">
+            <i className="bi bi-safe2-fill"></i>
+            <div>
+              <small>Total secretos</small>
+              <strong>{secrets.length}</strong>
+            </div>
+          </article>
+          <article className="stat-card">
+            <i className="bi bi-key-fill"></i>
+            <div>
+              <small>Datos sensibles</small>
+              <strong>
+                {
+                  secrets.filter((s) =>
+                    ["password", "api_key", "token"].includes(s.category || "other"),
+                  ).length
+                }
+              </strong>
+            </div>
+          </article>
+          <article className="stat-card">
+            <i className="bi bi-person-badge-fill"></i>
+            <div>
+              <small>Cuenta activa</small>
+              <strong>{currentUser?.role || "user"}</strong>
+            </div>
+          </article>
+        </section>
+
+        <div className="vault-grid">
+          <section className="vault-card composer-card">
+            <h2>
+              <i className="bi bi-plus-circle-fill me-2"></i>
+              Crear secreto
+            </h2>
+
+            <div className="form-grid">
+              <div className="form-group">
+                <label>Nombre</label>
+                <input
+                  type="text"
+                  className="form-control"
+                  placeholder="ej. AWS Producción"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  autoComplete="off"
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Categoría</label>
+                <select
+                  className="form-control"
+                  value={category}
+                  onChange={(e) => setCategory(e.target.value)}
+                >
+                  {CATEGORY_OPTIONS.map((opt) => (
+                    <option key={opt} value={opt}>
+                      {opt}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div className="form-group">
+              <label>Valor del secreto</label>
+              <div className="secret-input-wrapper">
+                <input
+                  type={showNewValue ? "text" : "password"}
+                  className="form-control"
+                  placeholder="••••••••••••"
+                  value={value}
+                  onChange={(e) => setValue(e.target.value)}
+                  autoComplete="off"
+                />
+                <button
+                  className="btn-show"
+                  type="button"
+                  onClick={() => setShowNewValue((v) => !v)}
+                  title="Mostrar/Ocultar"
+                >
+                  <i className={`bi ${showNewValue ? "bi-eye-slash" : "bi-eye"}`}></i>
+                </button>
+              </div>
+            </div>
+
+            <div className="form-group">
+              <label>Descripción (opcional)</label>
+              <textarea
+                className="form-control"
+                placeholder="Notas internas del secreto"
+                rows="2"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+              />
+            </div>
+
+            {saveError && <div className="alert alert-danger">{saveError}</div>}
+
+            <button className="btn btn-primary btn-save" onClick={handleSave}>
+              <i className="bi bi-floppy-fill me-1"></i>
+              Guardar secreto
+            </button>
+          </section>
+
+          <section className="vault-card list-card">
+            <h2>
+              <i className="bi bi-lock-fill me-2"></i>
+              Secretos registrados ({secrets.length})
+            </h2>
+
+            {loadError && <div className="alert alert-danger">{loadError}</div>}
+
+            {secrets.length === 0 ? (
+              <div className="empty-state">
+                <i className="bi bi-safe2"></i>
+                <p>Tu bóveda está vacía</p>
+                <small>Guarda el primer secreto usando el formulario.</small>
+              </div>
+            ) : (
+              <div className="secrets-table-wrapper">
+                <table className="secrets-table">
+                  <thead>
+                    <tr>
+                      <th>Nombre</th>
+                      <th>Categoría</th>
+                      <th>Valor</th>
+                      <th>Descripción</th>
+                      <th className="text-end">Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {secrets.map((s) => (
+                      <tr key={s.id}>
+                        <td className="font-weight-bold">{s.site}</td>
+                        <td>
+                          <span className={`badge badge-${s.category || "other"}`}>
+                            {s.category || "other"}
+                          </span>
+                        </td>
+                        <td>
+                          <SecretCell value={s.password} category={s.category} />
+                        </td>
+                        <td className="text-muted small">
+                          {s.description
+                            ? s.description.substring(0, 50) +
+                              (s.description.length > 50 ? "..." : "")
+                            : "-"}
+                        </td>
+                        <td className="text-end">
+                          <button
+                            className="btn btn-sm btn-primary me-2"
+                            title="Editar"
+                            onClick={() => setEditTarget(s)}
+                          >
+                            <i className="bi bi-pencil"></i>
+                          </button>
+                          <button
+                            className="btn btn-sm btn-danger"
+                            title="Eliminar"
+                            onClick={() => handleDelete(s.id)}
+                          >
+                            <i className="bi bi-trash"></i>
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </section>
         </div>
       </main>
     </div>

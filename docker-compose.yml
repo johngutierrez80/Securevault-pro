@@ -3,6 +3,9 @@ services:
     build: ./servicios/auth-service
     ports:
       - "8001:8001"
+    environment:
+      BOOTSTRAP_ADMIN_EMAIL: admin@securevault.local
+      BOOTSTRAP_ADMIN_PASSWORD: AdminSecure123!@#
     depends_on:
       postgres:
         condition: service_healthy
@@ -11,6 +14,8 @@ services:
     build: ./servicios/vault-service
     ports:
       - "8002:8002"
+    environment:
+      ENCRYPTION_KEY: "GmZ-xxg5FHVoxvS7hwsNOHYPgrlefsRIa74WRSZoYDc="
     depends_on:
       postgres:
         condition: service_healthy
@@ -29,6 +34,8 @@ services:
       POSTGRES_USER: vault
       POSTGRES_PASSWORD: vault
       POSTGRES_DB: vaultdb
+    volumes:
+      - pgdata:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U vault -d vaultdb"]
       interval: 10s
@@ -37,6 +44,8 @@ services:
 
   redis:
     image: redis:7-alpine
+    volumes:
+      - redisdata:/data
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
@@ -50,3 +59,7 @@ services:
     depends_on:
       - auth
       - vault
+
+volumes:
+  pgdata:
+  redisdata:
