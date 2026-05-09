@@ -2,14 +2,19 @@
 
 ## 1. Controles de seguridad implementados
 
-- Autenticación con JWT firmado (HS256).
-- Expiración de token en auth-service.
-- Verificación de token en vault-service.
+- Autenticacion con JWT firmado (HS256), claim `sub` como string conforme RFC 7519.
+- Expiracion de token en auth-service (60 minutos).
+- Verificacion de token en vault-service y endpoints de administracion.
 - Hash de contraseñas de usuario con bcrypt.
-- Cifrado de secretos de la bóveda con Fernet.
+- Cifrado de secretos de la boveda con Fernet (clave fija persistente via `ENCRYPTION_KEY`).
 - Rate limiting en endpoints de vault (10/minuto por IP) usando Redis.
-- Worker asíncrono independiente para consumo de eventos de seguridad desde Redis.
-- Separación de servicios detrás de gateway Nginx.
+- Control de acceso basado en roles (RBAC):
+  - Rol `user`: accede solo a sus propios secretos.
+  - Rol `admin`: gestiona usuarios y puede cambiar roles; no puede cambiar su propio rol.
+  - Endpoint `GET /auth/users` y `PATCH /auth/users/{id}/role` restringidos a administradores.
+- Bootstrap de administrador inicial mediante variables de entorno seguras.
+- Worker asincrono independiente para consumo de eventos de seguridad desde Redis.
+- Separacion de servicios detras de gateway Nginx.
 
 ## 2. Riesgos identificados
 
@@ -43,18 +48,19 @@
 
 ## 4. Análisis STRIDE documentado
 
-| Elemento o flujo         | STRIDE dominante       | Riesgo principal                                     | Mitigación actual o propuesta                                         |
+| Elemento o flujo         | STRIDE dominante       | Riesgo principal                                     | Mitigacion actual o propuesta                                         |
 | ------------------------ | ---------------------- | ---------------------------------------------------- | --------------------------------------------------------------------- |
-| Usuario / navegador      | Spoofing               | Robo de token o suplantación de sesión               | Validación JWT, expiración de token, endurecimiento futuro contra XSS |
-| Flujo usuario -> gateway | Information Disclosure | Exposición de credenciales y tokens en tránsito      | Uso de HTTPS en despliegues reales                                    |
-| Auth Service             | Elevation of Privilege | Emisión fraudulenta de JWT por secretos débiles      | Variables de entorno seguras y rotación de claves                     |
-| Vault Service            | Elevation of Privilege | Acceso no autorizado a secretos                      | Verificación de token y control de autorización por endpoint          |
-| Vault Service            | Denial of Service      | Abuso por múltiples solicitudes                      | Rate limiting con Redis y SlowAPI                                     |
-| PostgreSQL               | Information Disclosure | Exposición de datos sensibles y backups              | Cifrado de secretos, backups protegidos y control de acceso           |
-| Redis                    | Tampering              | Manipulación del estado de rate limiting             | Aislamiento en red privada y endurecimiento futuro                    |
-| GitHub Actions           | Information Disclosure | Fuga de secretos de CI/CD                            | GitHub Secrets, environments protegidos y revisión de workflows       |
-| Registros de imágenes    | Tampering              | Publicación o reemplazo de imágenes maliciosas       | Escaneo de imágenes, control de permisos y tags versionados           |
-| Deploy Workflow          | Elevation of Privilege | Uso indebido de llave SSH o aprobación no autorizada | Aprobación manual en environment production y secretos protegidos     |
+| Usuario / navegador      | Spoofing               | Robo de token o suplantacion de sesion               | Validacion JWT, expiracion de token, endurecimiento futuro contra XSS |
+| Flujo usuario -> gateway | Information Disclosure | Exposicion de credenciales y tokens en transito      | Uso de HTTPS en despliegues reales                                    |
+| Auth Service             | Elevation of Privilege | Emision fraudulenta de JWT por secretos debiles      | Variables de entorno seguras y rotacion de claves                     |
+| Auth Service (RBAC)      | Elevation of Privilege | Usuario sin privilegios accede a endpoints admin     | Verificacion de rol en cada endpoint protegido; 403 si no es admin    |
+| Vault Service            | Elevation of Privilege | Acceso no autorizado a secretos de otros usuarios    | Filtro por propietario en DB; admin ve todos, user solo los propios   |
+| Vault Service            | Denial of Service      | Abuso por multiples solicitudes                      | Rate limiting con Redis y SlowAPI                                     |
+| PostgreSQL               | Information Disclosure | Exposicion de datos sensibles y backups              | Cifrado de secretos, backups protegidos y control de acceso           |
+| Redis                    | Tampering              | Manipulacion del estado de rate limiting             | Aislamiento en red privada y endurecimiento futuro                    |
+| GitHub Actions           | Information Disclosure | Fuga de secretos de CI/CD                            | GitHub Secrets, environments protegidos y revision de workflows       |
+| Registros de imagenes    | Tampering              | Publicacion o reemplazo de imagenes maliciosas       | Escaneo de imagenes, control de permisos y tags versionados           |
+| Deploy Workflow          | Elevation of Privilege | Uso indebido de llave SSH o aprobacion no autorizada | Aprobacion manual en environment production y secretos protegidos     |
 
 ## 5. Cumplimiento de objetivos académicos
 

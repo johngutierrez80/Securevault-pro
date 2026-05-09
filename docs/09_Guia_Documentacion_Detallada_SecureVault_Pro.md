@@ -117,62 +117,84 @@ El sistema actua como una boveda digital: el usuario entra por una unica puerta 
 ## 4.1 Frontend SPA (React + Vite)
 
 **Funcion principal:**  
-Interfaz de usuario para registro, login y gestion de secretos.
+Interfaz de usuario para registro, login, gestion de secretos y administracion de usuarios segun rol.
 
 **Herramientas usadas:**  
 - React para componentes y estado.
 - Vite para build rapido y empaquetado.
+- React Router para navegacion y proteccion de rutas.
 - Nginx para servir archivos estaticos en el contenedor frontend.
 
 **Implementacion en el repositorio:**  
 - Carpeta `frontend-spa/`.
 - Flujo de login en `frontend-spa/src/pages/LoginPage.jsx`.
 - El token se guarda en `localStorage` tras autenticacion exitosa.
+- Enrutamiento basado en roles en `frontend-spa/src/App.jsx`:
+  - `ProtectedRoute`: valida sesion via `GET /auth/me`; redirige a `/` si no hay token valido.
+  - `RoleBasedRoute`: si el rol es `admin` renderiza `AdminPage`; si es `user` renderiza `DashboardPage`.
+  - Ruta `/admin` protegida exclusivamente para administradores.
+- `frontend-spa/src/pages/DashboardPage.jsx`: boveda personal del usuario (crear, ver, editar, eliminar secretos propios).
+- `frontend-spa/src/pages/AdminPage.jsx`: panel de administracion (lista de usuarios, cambio de roles).
+- `frontend-spa/src/api/auth.js`: wrapper para login y perfil de usuario.
+- `frontend-spa/src/api/vault.js`: wrapper para CRUD de secretos.
+- `frontend-spa/src/api/users.js`: wrapper para gestion de usuarios (solo admin).
 
 **Politicas de seguridad relacionadas:**
-- Control de acceso basado en token JWT.
+- Control de acceso basado en token JWT y rol de usuario.
+- Rutas protegidas por rol; acceso no autorizado redirige automaticamente.
 - Riesgo documentado por almacenamiento de token en localStorage.
 
 **Explicacion educativa profunda:**  
-El frontend es la capa de atencion al usuario, no el lugar donde vive la seguridad central. Su rol es solicitar credenciales y consumir APIs protegidas. Cuando guarda un token en localStorage, obtiene simplicidad de implementacion, pero aumenta exposicion ante XSS. Por eso la seguridad real se mantiene en backend con validaciones y expiracion de tokens.
+El frontend es la capa de atencion al usuario, no el lugar donde vive la seguridad central. El RBAC en frontend es UX y primera barrera de navegacion; la seguridad real se mantiene en el backend con validaciones de rol en cada endpoint. Cuando un administrador inicia sesion, ve un panel completamente diferente al de un usuario regular, reduciendo la superficie de error y mejorando la experiencia.
 
 **Captura sugerida:**  
-- Vista de `frontend-spa/` y `frontend-spa/src/pages/LoginPage.jsx`.
-- Guardar como `docs/assets/capturas/01_frontend_login.png`.
+- Vista de `frontend-spa/src/App.jsx` mostrando `ProtectedRoute` y `RoleBasedRoute`.
+- Vista de `frontend-spa/src/pages/AdminPage.jsx` con tabla de usuarios.
+- Guardar como `docs/assets/capturas/01_frontend_login.png` y `docs/assets/capturas/01b_frontend_admin.png`.
 
 ## 4.2 Auth Service (FastAPI)
 
 **Funcion principal:**  
-Registro, login y emision de JWT.
+Registro, login, emision de JWT y gestion de usuarios con control de acceso basado en roles (RBAC).
 
 **Herramientas usadas:**  
 - FastAPI para API REST.
-- passlib/bcrypt para hash de contraseñas.
+- passlib/bcrypt para hash de contrasenas.
 - PyJWT para firma y validacion de tokens.
 - SQLAlchemy para persistencia en PostgreSQL.
+- Pydantic Settings para configuracion via variables de entorno.
 
 **Implementacion en el repositorio:**  
 - `servicios/auth-service/app/core/security.py`: hash y verificacion bcrypt.
 - `servicios/auth-service/app/utils/jwt.py`: creacion y verificacion de token con expiracion.
-- `servicios/auth-service/app/routers/auth.py`: endpoints `register` y `login`.
+- `servicios/auth-service/app/services/auth_service.py`: logica de negocio incluyendo `bootstrap_initial_admin()` y `build_access_token()` (sub como string).
+- `servicios/auth-service/app/routers/auth.py`: endpoints `register`, `login`, `me`, `users` y `PATCH users/{id}/role`.
+- `servicios/auth-service/app/core/config.py`: variables `BOOTSTRAP_ADMIN_EMAIL` y `BOOTSTRAP_ADMIN_PASSWORD`.
+- `servicios/auth-service/app/main.py`: hook de startup que llama `bootstrap_initial_admin()` al arrancar.
+
+**Endpoints RBAC:**
+- `GET /auth/users`: lista todos los usuarios registrados (solo administradores).
+- `PATCH /auth/users/{user_id}/role`: cambia el rol de un usuario (solo administradores; no se puede cambiar el propio rol).
 
 **Politicas de seguridad relacionadas:**
-- No almacenar contraseñas en texto plano.
-- Tokens firmados y con expiracion.
-- Autenticacion centralizada.
+- No almacenar contrasenas en texto plano.
+- Tokens firmados con HS256 y con expiracion de 60 minutos.
+- Claim `sub` como string conforme RFC 7519.
+- Administrador inicial creado de forma segura via variables de entorno, no hardcodeado en codigo.
+- Endpoints de gestion protegidos por rol; 403 Forbidden si no es administrador.
 
 **Explicacion educativa profunda:**  
-Este servicio es el control de identidad del sistema. La contrasena nunca se conserva en forma legible; solo se guarda su hash bcrypt. En login, el sistema compara hashes y, si todo es valido, entrega un pase temporal (JWT). El token no es una password, es una credencial de sesion con vencimiento. Esta estrategia reduce el impacto de robo de base de datos y limita sesiones comprometidas.
+Este servicio es el control de identidad del sistema. La contrasena nunca se conserva en forma legible; solo se guarda su hash bcrypt. En login, el sistema compara hashes y, si todo es valido, entrega un pase temporal (JWT). El claim `sub` es obligatoriamente string por el estandar RFC 7519; PyJWT rechaza valores enteros con InvalidClaimsError. El RBAC asegura que acciones administrativas como listar usuarios o cambiar roles esten restringidas a cuentas con privilegio explicitamente asignado.
 
 **Captura sugerida:**  
-- `servicios/auth-service/app/core/security.py`
-- `servicios/auth-service/app/utils/jwt.py`
+- `servicios/auth-service/app/services/auth_service.py` mostrando `build_access_token` con `str(user.id)`.
+- `servicios/auth-service/app/routers/auth.py` mostrando endpoint PATCH de roles.
 - Guardar como `docs/assets/capturas/02_auth_jwt_bcrypt.png`.
 
 ## 4.3 Vault Service (FastAPI + Fernet + Rate Limiting)
 
 **Funcion principal:**  
-Gestionar CRUD de secretos y protegerlos antes de persistirlos.
+Gestionar CRUD de secretos, protegerlos antes de persistirlos y aplicar control de acceso por propietario segun rol.
 
 **Herramientas usadas:**  
 - FastAPI para endpoints.
@@ -181,17 +203,22 @@ Gestionar CRUD de secretos y protegerlos antes de persistirlos.
 - SQLAlchemy para persistencia.
 
 **Implementacion en el repositorio:**  
-- `servicios/vault-service/app/utils/crypto.py`: cifrado/descifrado Fernet.
+- `servicios/vault-service/app/utils/crypto.py`: cifrado/descifrado Fernet con clave fija via `ENCRYPTION_KEY`.
 - `servicios/vault-service/app/core/rate_limit.py`: limite por IP (10/min).
-- `servicios/vault-service/app/routers/secrets.py`: endpoints protegidos con JWT y limite de tasa.
+- `servicios/vault-service/app/routers/secrets.py`: endpoints protegidos con JWT, filtro RBAC y limite de tasa.
+
+**RBAC en Vault Service:**
+- `GET /vault/secret`: si el rol del JWT es `admin`, retorna todos los secretos de todos los usuarios; si es `user`, retorna solo los propios.
+- Las operaciones de escritura (POST, PUT, DELETE) respetan el propietario del secreto.
 
 **Politicas de seguridad relacionadas:**
-- Cifrado de secretos en reposo.
+- Cifrado de secretos en reposo con clave Fernet persistente (si `ENCRYPTION_KEY` no se define, se genera una clave efimera y los secretos previos no pueden descifrarse tras reinicio).
 - Control de abuso de peticiones.
-- Acceso solo para usuarios autenticados.
+- Acceso solo para usuarios autenticados con JWT valido.
+- Separacion de datos por propietario; los usuarios no pueden ver secretos de otros.
 
 **Explicacion educativa profunda:**  
-Si Auth valida "quien eres", Vault decide "que puedes guardar y leer". Su valor principal es que el secreto no se almacena en claro: se cifra con Fernet antes de llegar a la base. Adicionalmente, el rate limiting evita ataques de fuerza bruta y abuso de API. El resultado es defensa en capas: identidad + autorizacion + cifrado + control de trafico.
+Si Auth valida "quien eres", Vault decide "que puedes guardar y leer". Su valor principal es que el secreto no se almacena en claro: se cifra con Fernet antes de llegar a la base. El rate limiting evita ataques de fuerza bruta y abuso de API. El RBAC de vault agrega una capa adicional: un usuario regular no puede ver ni modificar secretos de otros usuarios, mientras que un administrador tiene visibilidad total para tareas de auditoria. El resultado es defensa en capas: identidad + autorizacion + cifrado + control de trafico.
 
 **Captura sugerida:**  
 - `servicios/vault-service/app/utils/crypto.py`

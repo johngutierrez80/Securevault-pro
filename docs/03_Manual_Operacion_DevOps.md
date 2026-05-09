@@ -78,6 +78,20 @@ En entorno productivo con `docker-compose.prod.yml` también se esperan:
 - Auth directo: http://localhost:8001/docs
 - Vault directo: http://localhost:8002/docs
 
+### Credenciales de acceso inicial
+
+| Rol           | Email                        | Contrasena          |
+|---------------|------------------------------|---------------------|
+| Administrador | admin@securevault.local      | AdminSecure123!@#   |
+| Usuario       | (registro libre desde la UI) | (definida al crear) |
+
+El administrador inicial se crea automaticamente al arrancar auth-service si no existe.
+
+### Comportamiento segun rol
+
+- **Usuario regular** (rol `user`): al autenticarse accede a `/boveda` con su boveda personal de secretos (crear, editar, eliminar sus propios secretos).
+- **Administrador** (rol `admin`): al autenticarse accede a `/boveda` con el panel de administracion de usuarios. Puede ver todos los usuarios registrados y cambiar sus roles. No puede cambiar su propio rol.
+
 Acceso de monitoreo en producción:
 
 - Prometheus: http://localhost:9090
@@ -92,58 +106,86 @@ Las siguientes pruebas permiten evidenciar que el proyecto esta operativo mas al
 ### Registro de usuario
 
 ```powershell
-curl -X POST http://localhost:3000/auth/register ^
-	-H "Content-Type: application/json" ^
-	-d "{\"username\":\"evaluador1\",\"password\":\"ClaveSegura123!\"}"
+Invoke-WebRequest -Method POST http://localhost:3000/auth/register `
+  -Headers @{"Content-Type"="application/json"} `
+  -Body '{"email":"evaluador1@test.com","password":"ClaveSegura123!"}'
 ```
 
 ### Login y obtencion de token
 
 ```powershell
-curl -X POST http://localhost:3000/auth/login ^
-	-H "Content-Type: application/json" ^
-	-d "{\"username\":\"evaluador1\",\"password\":\"ClaveSegura123!\"}"
+Invoke-WebRequest -Method POST http://localhost:3000/auth/login `
+  -Headers @{"Content-Type"="application/json"} `
+  -Body '{"email":"evaluador1@test.com","password":"ClaveSegura123!"}'
 ```
 
 El resultado esperado es un `access_token`. Ese valor debe reutilizarse en las consultas autenticadas.
 
+### Login como administrador
+
+```powershell
+Invoke-WebRequest -Method POST http://localhost:3000/auth/login `
+  -Headers @{"Content-Type"="application/json"} `
+  -Body '{"email":"admin@securevault.local","password":"AdminSecure123!@#"}'
+```
+
+### Ver perfil del usuario autenticado
+
+```powershell
+Invoke-WebRequest -Method GET http://localhost:3000/auth/me `
+  -Headers @{"Authorization"="Bearer TOKEN_AQUI"}
+```
+
+### Listar usuarios registrados (solo admin)
+
+```powershell
+Invoke-WebRequest -Method GET http://localhost:3000/auth/users `
+  -Headers @{"Authorization"="Bearer TOKEN_ADMIN_AQUI"}
+```
+
+### Cambiar rol de un usuario (solo admin)
+
+```powershell
+Invoke-WebRequest -Method PATCH http://localhost:3000/auth/users/2/role `
+  -Headers @{"Authorization"="Bearer TOKEN_ADMIN_AQUI"; "Content-Type"="application/json"} `
+  -Body '{"role":"admin"}'
+```
+
 ### Crear un secreto
 
 ```powershell
-curl -X POST http://localhost:3000/vault/secret ^
-	-H "Authorization: Bearer TOKEN_AQUI" ^
-	-H "Content-Type: application/json" ^
-	-d "{\"site\":\"correo-institucional\",\"password\":\"MiClave123!\"}"
+Invoke-WebRequest -Method POST http://localhost:3000/vault/secret `
+  -Headers @{"Authorization"="Bearer TOKEN_AQUI"; "Content-Type"="application/json"} `
+  -Body '{"site":"correo-institucional","password":"MiClave123!","category":"password"}'
 ```
 
 ### Listar secretos
 
 ```powershell
-curl -X GET http://localhost:3000/vault/secret ^
-	-H "Authorization: Bearer TOKEN_AQUI"
+Invoke-WebRequest -Method GET http://localhost:3000/vault/secret `
+  -Headers @{"Authorization"="Bearer TOKEN_AQUI"}
 ```
 
 ### Actualizar un secreto
 
 ```powershell
-curl -X PUT http://localhost:3000/vault/secret/1 ^
-	-H "Authorization: Bearer TOKEN_AQUI" ^
-	-H "Content-Type: application/json" ^
-	-d "{\"site\":\"correo-actualizado\",\"password\":\"NuevaClave456!\"}"
+Invoke-WebRequest -Method PUT http://localhost:3000/vault/secret/1 `
+  -Headers @{"Authorization"="Bearer TOKEN_AQUI"; "Content-Type"="application/json"} `
+  -Body '{"site":"correo-actualizado","password":"NuevaClave456!","category":"password"}'
 ```
 
 ### Eliminar un secreto
 
 ```powershell
-curl -X DELETE http://localhost:3000/vault/secret/1 ^
-	-H "Authorization: Bearer TOKEN_AQUI"
+Invoke-WebRequest -Method DELETE http://localhost:3000/vault/secret/1 `
+  -Headers @{"Authorization"="Bearer TOKEN_AQUI"}
 ```
 
 ### Verificacion de persistencia en PostgreSQL
 
 ```powershell
-docker compose exec postgres psql -U vault -d vaultdb -c "SELECT id, username FROM users;"
-docker compose exec postgres psql -U vault -d vaultdb -c "SELECT id, site, owner_id FROM secrets;"
+docker compose exec postgres psql -U vault -d vaultdb -c "SELECT id, email, role FROM users;"
+docker compose exec postgres psql -U vault -d vaultdb -c "SELECT id, site, owner FROM secrets;"
 ```
 
 ### Verificacion de Redis

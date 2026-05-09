@@ -25,13 +25,20 @@
 - [ ] Servicios en estado running/healthy
 - [ ] Acceso funcional por gateway en `http://localhost:3000`
 - [ ] Registro, login y CRUD de secretos funcionando
+- [ ] Administrador inicial creado automaticamente al arrancar (bootstrap)
+- [ ] Usuario regular ve solo su boveda personal en `/boveda`
+- [ ] Administrador ve panel de gestion de usuarios en `/boveda`
+- [ ] Cambio de roles funcional desde panel de administracion
+- [ ] Ruta `/admin` bloqueada para usuarios sin rol admin
 - [ ] Worker asincrono ejecutando tarea verificable
 
 ## 4. Seguridad minima requerida
 
 - [ ] JWT implementado y validado en endpoints protegidos
+- [ ] Claim `sub` del JWT como string (RFC 7519)
+- [ ] Control de acceso basado en roles (RBAC) con roles `admin` y `user`
 - [ ] Contrasenas hasheadas
-- [ ] Secretos cifrados en reposo
+- [ ] Secretos cifrados en reposo con clave persistente (ENCRYPTION_KEY)
 - [ ] Rate limiting activo
 - [ ] Secret scanning integrado (Gitleaks/TruffleHog)
 - [ ] SAST integrado (Bandit/Semgrep)

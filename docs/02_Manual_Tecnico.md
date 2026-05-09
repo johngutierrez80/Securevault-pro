@@ -41,6 +41,11 @@ flowchart LR
         UC7([Cerrar sesion])
     end
 
+    subgraph ADM[Administracion]
+        UC8([Ver todos los usuarios])
+        UC9([Cambiar rol de usuario])
+    end
+
     U --> UC1
     U --> UC2
     U --> UC3
@@ -48,6 +53,8 @@ flowchart LR
     U --> UC5
     U --> UC6
     U --> UC7
+    Admin([Administrador]) --> UC8
+    Admin --> UC9
 
     UC1 -. usa .-> A[(Auth Service)]
     UC2 -. usa .-> A
@@ -55,6 +62,8 @@ flowchart LR
     UC4 -. usa .-> V
     UC5 -. usa .-> V
     UC6 -. usa .-> V
+    UC8 -. usa .-> A
+    UC9 -. usa .-> A
 
     A -. persiste .-> DB[(PostgreSQL)]
     V -. persiste .-> DB
@@ -184,54 +193,76 @@ sequenceDiagram
 ### Tabla users
 
 - id: integer, PK.
-- username: string, unico.
-- hashed_password: string.
+- email: string, unico (identificador principal).
+- hashed_password: string (bcrypt).
+- role: string, valores posibles: `admin` o `user` (por defecto `user`).
+
+Nota: el usuario administrador inicial se crea automaticamente al arrancar el servicio con las variables de entorno `BOOTSTRAP_ADMIN_EMAIL` y `BOOTSTRAP_ADMIN_PASSWORD`.
 
 ### Tabla secrets
 
 - id: integer, PK.
-- site: string.
-- encrypted_password: string.
-- owner: string (usuario propietario).
+- site: string (nombre del sitio o servicio).
+- encrypted_password: string (cifrado Fernet).
+- category: string (ej. password, api_key, token).
+- description: string, opcional.
+- owner: string (email del usuario propietario).
+- expires_at: datetime, opcional (gestion por worker).
 
 ## 10. Seguridad implementada
 
 - Hash de contrasena: bcrypt mediante passlib.
-- JWT firmado con HS256 y expiracion configurable.
-- Validacion de token en endpoints de boveda.
-- Cifrado de secretos con Fernet.
+- JWT firmado con HS256 y expiracion configurable (60 minutos).
+- Claim `sub` del JWT codificado como string (`str(user.id)`) conforme RFC 7519.
+- Validacion de token en endpoints de boveda y administracion.
+- Cifrado de secretos con Fernet (clave fija persistente via `ENCRYPTION_KEY`).
 - Rate limiting en vault: 10 requests/minute por IP.
+- Control de acceso basado en roles (RBAC): rol `admin` y rol `user`.
+  - Usuario regular: accede solo a sus propios secretos.
+  - Administrador: accede al panel de gestion de usuarios y puede cambiar roles.
+  - Restriccion: un administrador no puede cambiar su propio rol.
 
 ## 11. Endpoints principales
 
 ### Auth Service
 
-- POST /auth/register
-- POST /auth/login
+- POST /auth/register — registro de usuario (rol `user` por defecto)
+- POST /auth/login — autenticacion y emision de JWT
+- GET /auth/me — perfil del usuario autenticado (requiere JWT)
+- GET /auth/users — lista todos los usuarios (solo admin)
+- PATCH /auth/users/{user_id}/role — cambia el rol de un usuario (solo admin)
 
 ### Vault Service
 
-- GET /vault/secret
-- POST /vault/secret
-- PUT /vault/secret/{secret_id}
-- DELETE /vault/secret/{secret_id}
+- GET /vault/secret — lista secretos del usuario; admin ve todos
+- POST /vault/secret — crea un nuevo secreto
+- PUT /vault/secret/{secret_id} — actualiza un secreto existente
+- DELETE /vault/secret/{secret_id} — elimina un secreto
 
 ## 12. Variables y configuracion
 
-- database_url: conexion PostgreSQL.
-- secret_key: clave de firma JWT.
-- algorithm: algoritmo JWT (HS256).
-- token_exp_minutes: expiracion del token.
-- ENCRYPTION_KEY: clave de cifrado de secretos recomendada para persistencia.
+- `DATABASE_URL`: conexion PostgreSQL.
+- `SECRET_KEY`: clave de firma JWT.
+- `ALGORITHM`: algoritmo JWT (HS256).
+- `TOKEN_EXP_MINUTES`: expiracion del token (por defecto 60).
+- `ENCRYPTION_KEY`: clave Fernet de 32 bytes en base64 para cifrado persistente de secretos. Debe ser fija entre reinicios.
+- `BOOTSTRAP_ADMIN_EMAIL`: email del administrador inicial creado automaticamente al arrancar auth-service.
+- `BOOTSTRAP_ADMIN_PASSWORD`: contrasena del administrador inicial. Debe cumplir politica de seguridad.
 
 ## 13. Notas tecnicas relevantes
 
-- Si ENCRYPTION_KEY no esta definida, se genera una clave efimera y los secretos previos pueden no descifrarse tras reinicio.
-- Nginx enruta /auth/ a auth y /vault/ a vault.
-- El frontend consume rutas relativas /auth/_ y /vault/_.
-- Vault publica eventos asincronos en Redis (jobs:security_events) y worker-service los procesa.
-- Se incluye un modelo DFD importable en OWASP Threat Dragon en threat-model/01_SecureVault_Operativo_Threat_Dragon.json.
-- Se incluye un segundo modelo Threat Dragon para CI/CD y supply chain en threat-model/02_SecureVault_CICD_Threat_Dragon.json.
+- Si `ENCRYPTION_KEY` no esta definida, se genera una clave efimera y los secretos previos no pueden descifrarse tras reinicio. Siempre debe definirse con una clave Fernet fija.
+- El claim `sub` del JWT debe ser string por RFC 7519; PyJWT rechaza valores enteros. El codigo usa `str(user.id)`.
+- Nginx enruta `/auth/` a auth-service y `/vault/` a vault-service.
+- El frontend consume rutas relativas `/auth/*` y `/vault/*`.
+- El enrutamiento del frontend es basado en rol:
+  - Usuario con rol `user` en `/boveda` ve `DashboardPage` (boveda personal).
+  - Usuario con rol `admin` en `/boveda` ve `AdminPage` (panel de administracion).
+  - La ruta `/admin` esta protegida exclusivamente para administradores.
+- El bootstrap de admin es idempotente: si el usuario ya existe, no se crea de nuevo.
+- Vault publica eventos asincronos en Redis (`jobs:security_events`) y worker-service los procesa.
+- Se incluye modelo DFD importable en OWASP Threat Dragon en `threat-model/01_SecureVault_Operativo_Threat_Dragon.json`.
+- Se incluye modelo Threat Dragon para CI/CD en `threat-model/02_SecureVault_CICD_Threat_Dragon.json`.
 
 ## 14. Mejoras futuras sugeridas
 
