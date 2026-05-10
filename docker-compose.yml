@@ -1,5 +1,6 @@
 services:
   auth:
+    image: docker.io/necromanoger/securevault-auth:${IMAGE_TAG:-v1.1.0}
     build: ./servicios/auth-service
     ports:
       - "8001:8001"
@@ -11,6 +12,7 @@ services:
         condition: service_healthy
 
   vault:
+    image: docker.io/necromanoger/securevault-vault:${IMAGE_TAG:-v1.1.0}
     build: ./servicios/vault-service
     ports:
       - "8002:8002"
@@ -24,6 +26,7 @@ services:
         condition: service_healthy
 
   worker:
+    image: docker.io/necromanoger/securevault-worker:${IMAGE_TAG:-v1.1.0}
     build: ./servicios/worker-service
     depends_on:
       redis:
@@ -54,6 +57,7 @@ services:
       retries: 5
 
   gateway:
+    image: docker.io/necromanoger/securevault-frontend:${IMAGE_TAG:-v1.1.0}
     build: ./frontend-spa
     ports:
       - "3000:80"
