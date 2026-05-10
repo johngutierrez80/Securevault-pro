@@ -239,15 +239,15 @@ docker compose up -d
 | **Proxy/Gateway** | Nginx | Alpine | Reverse proxy. Sirve SPA estática |
 | **Conteneurización** | Docker Compose | v2 | Stack reproducible con healthchecks |
 | **Orquestación** | Kubernetes/K3s | 1.28+ | Alta disponibilidad y escalado horizontal en producción |
-| **CI/CD** | GitHub Actions | — | Pipeline DevSecOps automatizado |
+| **CI/CD** | GitHub Actions | ubuntu-latest / actions@v4 | Pipeline DevSecOps automatizado |
 | **IaC** | Ansible | 2.15+ | Aprovisionamiento de infraestructura |
-| **Secret Scanning** | Gitleaks + TruffleHog | — | Detección de secretos comprometidos |
-| **SAST** | Semgrep | — | Análisis estático de código |
-| **SCA** | Trivy + Dependency-Check + pip-audit | — | Análisis de dependencias y vulnerabilidades |
-| **Dockerfile Lint** | hadolint | — | Validación de mejores prácticas en Dockerfiles |
-| **IaC Security** | Checkov | — | Escaneo de seguridad en IaC |
-| **Testing** | pytest (Python) + vitest (Node.js) | — | Pruebas unitarias y de integración |
-| **DAST** | OWASP ZAP | — | Pruebas dinámicas de seguridad |
+| **Secret Scanning** | Gitleaks + TruffleHog | gitleaks-action@v2 / trufflehog@main | Detección de secretos comprometidos |
+| **SAST** | Semgrep + Bandit | semgrep-action@v1 / pip latest | Análisis estático de código |
+| **SCA** | Trivy + Dependency-Check + pip-audit | trivy-action@v0.25.0 / Action@main / pip latest | Análisis de dependencias y vulnerabilidades |
+| **Dockerfile Lint** | hadolint | hadolint-action@v3.1.0 | Validación de mejores prácticas en Dockerfiles |
+| **IaC Security** | Checkov | checkov-action@v12 | Escaneo de seguridad en IaC |
+| **Testing** | pytest (Python) + vitest (Node.js) | pip latest / ^3.0.8 | Pruebas unitarias y de integración |
+| **DAST** | OWASP ZAP | action-baseline@v0.14.0 | Pruebas dinámicas de seguridad |
 
 ### Servicios del stack Docker Compose
 
