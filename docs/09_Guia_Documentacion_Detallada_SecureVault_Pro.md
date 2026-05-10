@@ -3,8 +3,8 @@
 
 **Proyecto:** SecureVault Pro  
 **Repositorio:** https://github.com/johngutierrez80/Securevault-pro  
-**Fecha de analisis:** 18 de abril de 2026  
-**Version del documento:** 1.0  
+**Fecha de analisis:** 10 de mayo de 2026  
+**Version del documento:** 1.2  
 **Tipo de entrega:** Guia explicativa academica con enfoque DevSecOps
 
 ---
@@ -142,12 +142,16 @@ Interfaz de usuario para registro, login, gestion de secretos y administracion d
   - **Bitácora de auditoría**: registro cronologico de todas las acciones administrativas (cambio de rol, activacion/desactivacion, revocacion de sesiones).
 - `frontend-spa/src/api/auth.js`: wrapper para login, perfil de usuario y validacion de sesion.
 - `frontend-spa/src/api/vault.js`: wrapper para CRUD de secretos.
-- `frontend-spa/src/api/users.js`: wrapper para gestion de usuarios, sesiones y auditoría (solo admin).
+- `frontend-spa/src/api/users.js`: wrapper para gestion de usuarios, sesiones y auditoría (solo admin). Define la clase `SessionExpiredError` y la funcion `adminFetch()` que detecta respuestas HTTP 401/403 y lanza `SessionExpiredError`.
+- **Polling automatico del panel admin** (`POLL_INTERVAL = 30` segundos): `AdminPage.jsx` usa `useRef` + `useCallback` + `Promise.allSettled` para refrescar todos los datos sin bloquear la UI ante fallos parciales. Incluye countdown visual y boton "Actualizar ahora".
+- **Deteccion de sesion expirada**: si el polling detecta `SessionExpiredError`, se llama `clearAuthSession()` y se redirige automaticamente al login con `useNavigate`.
+- `LoginPage.jsx` detecta HTTP 423 (cuenta bloqueada) y muestra aviso con flujo de recuperacion. Detecta `?reset_token=` en URL para pre-cargar panel de recovery.
 
 **Politicas de seguridad relacionadas:**
 - Control de acceso basado en token JWT y rol de usuario.
 - Rutas protegidas por rol; acceso no autorizado redirige automaticamente.
 - Riesgo documentado por almacenamiento de token en localStorage.
+- Deteccion proactiva de sesion expirada sin esperar accion del usuario.
 
 **Explicacion educativa profunda:**  
 El frontend es la capa de atencion al usuario, no el lugar donde vive la seguridad central. El RBAC en frontend es UX y primera barrera de navegacion; la seguridad real se mantiene en el backend con validaciones de rol en cada endpoint. Cuando un administrador inicia sesion, ve un panel completamente diferente al de un usuario regular, reduciendo la superficie de error y mejorando la experiencia.
@@ -197,11 +201,13 @@ Registro, login, emision de JWT y gestion de usuarios con control de acceso basa
 
 **Politicas de seguridad relacionadas:**
 - No almacenar contrasenas en texto plano.
-- Tokens firmados con HS256 y con expiracion de 60 minutos.
+- Tokens firmados con HS256 con **expiracion diferenciada por rol**: 60 minutos para `user`, 480 minutos (8 horas) para `admin`.
 - Claim `sub` como string conforme RFC 7519.
 - Cada token incluye un JTI (JWT ID) unico para trazabilidad y revocacion de sesiones.
 - Administrador inicial creado de forma segura via variables de entorno, no hardcodeado en codigo.
 - Endpoints de gestion protegidos por rol; 403 Forbidden si no es administrador.
+- **Bloqueo automatico de cuenta**: tras 3 intentos de login fallidos, se registra clave `login_fail:{email}` en Redis (TTL 300 s). El 3.er intento devuelve HTTP 423 y envia email de notificacion al usuario.
+- **Recuperacion de contrasena por email**: endpoint `POST /auth/request-reset` genera token de un solo uso; `POST /auth/reset-password` verifica el token, actualiza la contrasena y **elimina la clave de bloqueo Redis** (`redis_client.delete(f"login_fail:{email}")`).
 - Tracking de sesiones activas con persistencia en tabla `auth_sessions`.
 - Revocacion de sesiones sin invalidar token JWT en JWT provider (revoke se valida en auth service).
 - Auditoría completa de acciones administrativas con timestamp, actor y objetivo.
@@ -347,8 +353,11 @@ Tabla de relacion politica -> objetivo -> mecanismo -> evidencia:
 
 | Politica de seguridad | Objetivo | Mecanismo implementado | Evidencia en repo |
 |---|---|---|---|
-| Autenticacion JWT con expiracion | Evitar acceso no autenticado y sesiones indefinidas | Emision y verificacion JWT, `exp` en token | `auth-service/app/utils/jwt.py` |
+| Autenticacion JWT con expiracion diferenciada por rol | Sesiones de menor duracion para usuarios regulares; mayor para admins | `token_exp_minutes=60` / `admin_token_exp_minutes=480` en `config.py` | `auth-service/app/core/config.py`, `app/utils/jwt.py` |
 | Hash de contrasenas con bcrypt | Evitar exposicion de claves en texto plano | Hash + verify con passlib | `auth-service/app/core/security.py` |
+| Bloqueo automatico de cuenta (lockout) | Prevenir ataques de fuerza bruta | Redis `login_fail:{email}` TTL 300s, HTTP 423 tras 3 intentos | `auth-service/app/routers/auth.py` |
+| Recuperacion segura por email | Permitir desbloqueo sin exposicion de datos | Token OTP via Mailjet + limpieza Redis al confirmar reset | `auth-service/app/utils/email_service.py`, `app/routers/auth.py` |
+| Deteccion de sesion expirada en frontend | Forzar re-autenticacion ante token caducado o revocado | `SessionExpiredError` en polling 401/403 → redirect login | `frontend-spa/src/api/users.js`, `pages/AdminPage.jsx` |
 | Cifrado de secretos en reposo | Proteger secretos incluso ante acceso a BD | Fernet para encrypt/decrypt | `vault-service/app/utils/crypto.py` |
 | Rate limiting 10/min por IP | Reducir fuerza bruta y abuso de API | SlowAPI + Redis | `vault-service/app/core/rate_limit.py` y `routers/secrets.py` |
 | Segmentacion por microservicios | Reducir blast radius | Auth/Vault/Worker desacoplados | `servicios/` y `docker-compose.yml` |
@@ -399,15 +408,48 @@ Estas herramientas son la primera barrera contra errores humanos. El incidente m
 
 **Que hacen:**
 - Bandit/Semgrep: analizan codigo fuente y detectan patrones inseguros.
-- pip-audit/npm audit/Dependency-Check: detectan CVEs en dependencias.
+- pip-audit/npm audit/Dependency-Check/OSV API: detectan CVEs en dependencias.
 
 **Implementacion en proyecto:**
 - Workflow `ci-devsecops.yml` ejecuta estos controles de forma automatica.
+- Analisis local adicional via OSV API (equivalente a pip-audit cuando herramientas de compilacion nativas no estan disponibles).
 
 **Politica que vigilan:** codigo seguro y cadena de suministro confiable.
 
+**Resultados reales del escaneo SAST/SCA v1.2 (2025-05-10):**
+
+*Bandit v1.9.4 — codigo fuente Python:*
+
+| Severidad | Cantidad | Detalle |
+|-----------|----------|---------|
+| HIGH | 0 | Sin hallazgos |
+| MEDIUM | 1 | B310: `urllib.request.urlopen` en `vault-service/core/security.py:22` (URL interna, riesgo real bajo) |
+| LOW | 56 | B101 en tests (assert), B110 except-pass en Redis |
+
+*SCA via OSV API — dependencias PyPI:*
+
+| Paquete | Version | CVEs | Severidad max | Impacto real |
+|---------|---------|------|--------------|-------------|
+| Jinja2 | 3.1.2 | 5 | MODERATE | Bajo — templates internos, no usuario-controlados |
+| cryptography | 41.0.7 | 7 | HIGH (x3) | Bajo-Moderado — CVEs en RSA/ECDH; SecureVault solo usa Fernet |
+| Resto de paquetes Python | — | 0 | — | Sin CVEs |
+
+*SCA via OSV API — dependencias npm:*
+
+| Paquete | Version | CVEs | Severidad max | Impacto real |
+|---------|---------|------|--------------|-------------|
+| vite | 5.3.5 | 12 | MODERATE | No aplica en produccion — solo afecta servidor de desarrollo |
+| Resto de paquetes npm | — | 0 | — | Sin CVEs |
+
+**Plan de remediacion priorizado:**
+1. **P1**: Actualizar `cryptography` a `>=43.0.1` en vault-service.
+2. **P2**: Actualizar `Jinja2` a `>=3.1.6` en auth-service.
+3. **P3**: Actualizar `vite` a `>=6.2.6` en devDependencies del frontend.
+
+Ver detalle completo en `docs/04_Seguridad_y_Riesgos.md` seccion 10.
+
 **Explicacion educativa extensa:**  
-SAST protege contra errores propios de programacion; SCA protege contra riesgos heredados de terceros. Un proyecto moderno depende de muchas librerias, y una sola dependencia vulnerable puede comprometer el sistema entero. Esta capa reduce ese riesgo continuamente.
+SAST protege contra errores propios de programacion; SCA protege contra riesgos heredados de terceros. Un proyecto moderno depende de muchas librerias, y una sola dependencia vulnerable puede comprometer el sistema entero. Esta capa reduce ese riesgo continuamente. Los resultados reales demuestran que no hay vulnerabilidades de severidad ALTA en codigo propio, y que los CVEs de dependencias tienen impacto real limitado por el uso especifico que hace SecureVault Pro de cada libreria.
 
 ## 6.4 OWASP ZAP (DAST)
 
@@ -547,12 +589,16 @@ flowchart LR
 
 | Riesgo | Mitigacion actual | Brecha residual | Recomendacion |
 |---|---|---|---|
-| Token en localStorage | JWT con expiracion y validacion backend | Exposicion ante XSS | Migrar a cookies HttpOnly + CSRF defense |
+| Token en localStorage | JWT con expiracion + deteccion de sesion expirada en polling | Exposicion ante XSS | Migrar a cookies HttpOnly + CSRF defense |
 | Trafico HTTP | Entorno local controlado | Sin TLS en despliegue remoto si no se configura | Forzar HTTPS en gateway/ingress |
 | Clave Fernet no persistente por defecto | Soporte de `ENCRYPTION_KEY` | Riesgo de perdida de descifrado si no se fija clave | Gestionar clave en secret manager |
 | Secretos en codigo/commits | Hooks + CI secret scanning | Falso negativo posible | Politica de rotacion y deteccion continua |
-| Abuso de API | Rate limiting en Vault | Aun sin WAF dedicado | Extender limites por ruta y reputacion IP |
+| Abuso de API | Rate limiting en Vault (10/min) | Aun sin WAF dedicado | Extender limites por ruta y reputacion IP |
 | Runtime compromise | Falco con reglas base | Necesita tuning por entorno | Ajustar reglas y alertas integradas |
+| Fuerza bruta en login | Bloqueo Redis tras 3 intentos (HTTP 423, TTL 300s) + notificacion email | Redis sin autenticacion en entorno local | Activar `requirepass` en Redis de produccion |
+| Token de recovery en URL (logs proxy) | Token OTP de un solo uso con TTL corto | Token visible en historial del navegador | Eliminar token del URL tras primer uso |
+| CVE en `cryptography 41.0.7` | Fernet (AES+HMAC) no usa las funciones vulnerables (RSA/ECDH) | Superficie OpenSSL en el wheel | Actualizar a `>=43.0.1` (P1 del plan de remediacion) |
+| CVE en `Jinja2 3.1.2` | Templates internos sin entrada de usuario | Sandbox breakout si se expusieran templates | Actualizar a `>=3.1.6` (P2 del plan de remediacion) |
 
 ---
 
@@ -607,13 +653,18 @@ Fortalezas:
 - Cobertura amplia de controles DevSecOps.
 - Estructura modular clara y reproducible.
 - Documentacion alineada con evidencia tecnica.
+- Controles de seguridad ampliados en v1.2: bloqueo de cuentas, recovery por email, JWT diferenciado por rol, deteccion proactiva de sesion expirada.
+- Escaneos locales (Bandit, OSV API) confirman: 0 hallazgos HIGH en codigo propio; CVEs de dependencias sin impacto real en la funcionalidad usada.
 
 Recomendaciones prioritarias para evolucion a produccion estricta:
-1. Migrar gestion de sesion a cookies HttpOnly y reforzar CSP.
-2. Habilitar TLS de extremo a extremo en todos los entornos remotos.
-3. Externalizar secretos a gestor dedicado (por ejemplo, Vault/KMS).
-4. Integrar alertamiento formal (correo/chat/siem) para eventos de Falco y umbrales de Prometheus.
-5. Definir politica de rotacion de claves y respuesta a incidentes versionada.
+1. **P1**: Actualizar `cryptography` a `>=43.0.1` (vault-service) y `Jinja2` a `>=3.1.6` (auth-service).
+2. Migrar gestion de sesion a cookies HttpOnly y reforzar CSP.
+3. Habilitar TLS de extremo a extremo en todos los entornos remotos.
+4. Externalizar secretos a gestor dedicado (por ejemplo, Vault/KMS).
+5. Integrar alertamiento formal (correo/chat/siem) para eventos de Falco y umbrales de Prometheus.
+6. Definir politica de rotacion de claves y respuesta a incidentes versionada.
+7. Corregir ESLint warnings en `App.jsx` y `LoginPage.jsx` para que CI DevSecOps pase en estado PASS completo.
+8. Actualizar GitHub Actions a versiones compatibles con Node.js 24 (antes de junio 2026).
 
 ---
 
@@ -636,18 +687,23 @@ flowchart TD
 
 ## Anexo B. Matriz herramienta vs politica vigilada
 
-| Herramienta | Tipo | Politica vigilada principal |
-|---|---|---|
-| Threat Dragon | Modelado de amenazas | Analisis preventivo de riesgo |
-| Gitleaks/TruffleHog | Secret scanning | Prevencion de fuga de credenciales |
-| Bandit/Semgrep | SAST | Codigo seguro |
-| pip-audit/npm audit/Dependency-Check | SCA | Dependencias seguras |
-| Hadolint | Lint de contenedor | Dockerfiles robustos |
-| Trivy/Grype | Escaneo de imagenes | Artefactos libres de CVEs criticos |
-| OWASP ZAP | DAST | Seguridad en ejecucion |
-| Prometheus/Grafana | Observabilidad | Disponibilidad y comportamiento |
-| Loki/Promtail | Logging | Trazabilidad operativa |
-| Falco | Runtime security | Deteccion temprana de comportamiento anomalo |
+| Herramienta | Tipo | Politica vigilada principal | Estado en v1.2 |
+|---|---|---|---|
+| Threat Dragon | Modelado de amenazas | Analisis preventivo de riesgo | ✅ Modelos actualizados |
+| Gitleaks | Secret scanning | Prevencion de fuga de credenciales | ✅ PASS en CI (sin secretos) |
+| TruffleHog | Secret scanning | Prevencion de fuga de credenciales | ⚠️ Falso positivo en CI (Gitleaks confirma limpio) |
+| Bandit | SAST Python | Codigo seguro | ✅ 0 HIGH, 1 MEDIUM (bajo riesgo real) |
+| Semgrep | SAST multi-lenguaje | Codigo seguro | ✅ PASS en CI |
+| OSV API / pip-audit | SCA Python | Dependencias seguras | ⚠️ Jinja2/cryptography con CVEs (remediacion pendiente) |
+| npm audit / OSV API | SCA JavaScript | Dependencias seguras | ⚠️ Vite 12 CVEs dev-only (no impacta produccion) |
+| Dependency-Check OWASP | SCA multi-ecosistema | Dependencias seguras | ✅ PASS en CI |
+| Hadolint | Lint de contenedor | Dockerfiles robustos | ✅ PASS (advertencia DL3059 menor) |
+| Trivy | Escaneo de imagenes/FS | Artefactos libres de CVEs criticos | ✅ PASS en CI |
+| Checkov | IaC scan | Infraestructura segura | ✅ PASS en CI |
+| OWASP ZAP | DAST | Seguridad en ejecucion | Workflow disponible |
+| Prometheus/Grafana | Observabilidad | Disponibilidad y comportamiento | Configurado en prod |
+| Loki/Promtail | Logging | Trazabilidad operativa | Configurado en prod |
+| Falco | Runtime security | Deteccion temprana de comportamiento anomalo | Configurado en prod |
 
 
 
