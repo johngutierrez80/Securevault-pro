@@ -47,6 +47,7 @@ class Token(BaseModel):
 class AuthUser(BaseModel):
     email: str
     role: str
+    is_active: bool = True
 
 
 class AuthUserWithId(AuthUser):
@@ -100,3 +101,32 @@ class UpdateUserRole(BaseModel):
         if normalized not in {"admin", "user"}:
             raise ValueError("Rol inválido. Usa 'admin' o 'user'")
         return normalized
+
+
+class UpdateUserStatus(BaseModel):
+    is_active: bool
+
+
+class SessionValidationResponse(BaseModel):
+    email: str
+    role: str
+    is_active: bool
+
+
+class AuthSessionResponse(BaseModel):
+    id: int
+    user_id: int
+    token_jti: str
+    issued_at: str
+    expires_at: str
+
+
+class AdminAuditLogResponse(BaseModel):
+    id: int
+    actor_user_id: int
+    actor_email: str
+    action: str
+    target_user_id: int | None = None
+    target_email: str | None = None
+    details: str | None = None
+    created_at: str

@@ -1,10 +1,23 @@
 import pytest
 from app.core.config import settings
+from app.core import security as security_module
 from app.core.security import verify_token, verify_token_context
 from app.utils.crypto import decrypt, encrypt
 from fastapi import HTTPException
 from fastapi.security import HTTPAuthorizationCredentials
 from jose import jwt
+
+
+@pytest.fixture(autouse=True)
+def mock_remote_session_validation(monkeypatch):
+    def _fake_validate_session(_token: str):
+        return {"email": "admin@example.com", "role": "admin", "is_active": True}
+
+    monkeypatch.setattr(
+        security_module,
+        "_validate_session_with_auth_service",
+        _fake_validate_session,
+    )
 
 
 def test_encrypt_and_decrypt_roundtrip():

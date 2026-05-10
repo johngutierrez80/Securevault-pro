@@ -49,11 +49,22 @@ RBAC implementado:
 
 - Roles soportados: `admin`, `user`.
 - Endpoints administrativos de roles (solo `admin`):
-  - `GET /auth/users` para listar usuarios con rol.
+  - `GET /auth/users` para listar usuarios con rol y estado.
+  - `GET /auth/admin/active-users` para ver usuarios conectados en tiempo real.
+  - `GET /auth/users/{user_id}/sessions` para listar sesiones activas.
+  - `POST /auth/users/{user_id}/sessions/revoke` para revocar sesiones de un usuario.
   - `PATCH /auth/users/{user_id}/role` para promover o degradar roles.
+  - `PATCH /auth/users/{user_id}/status` para activar o desactivar cuentas.
+  - `GET /auth/admin/audit-logs` para acceder a bitácora de auditoría completa.
 - Aplicación de rol en vault:
   - `user` solo gestiona sus propios secretos.
   - `admin` puede listar, editar y eliminar secretos de cualquier usuario.
+- Panel administrativo `/admin`:
+  - Visualización de estadísticas (usuarios totales, admins, activos, conectados).
+  - Tabla de usuarios registrados con opciones de cambio de rol, activacion/desactivacion.
+  - Tabla de usuarios conectados en tiempo real con sesiones activas y revocacion individual.
+  - Gestión de sesiones por usuario con revocación masiva.
+  - Bitácora de auditoría con registro de todas las acciones administrativas.
 
 Cómo saber quién es admin y quién es user:
 

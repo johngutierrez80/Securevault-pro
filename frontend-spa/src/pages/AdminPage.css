@@ -173,6 +173,30 @@
   text-align: center;
 }
 
+.user-status {
+  text-align: center;
+}
+
+.status-badge {
+  display: inline-block;
+  padding: 0.4rem 0.8rem;
+  border-radius: 0.25rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.status-active {
+  background: rgba(40, 167, 69, 0.2);
+  color: #77ff9d;
+  border: 1px solid rgba(40, 167, 69, 0.5);
+}
+
+.status-inactive {
+  background: rgba(108, 117, 125, 0.25);
+  color: #d6dce2;
+  border: 1px solid rgba(108, 117, 125, 0.5);
+}
+
 .role-badge {
   display: inline-block;
   padding: 0.4rem 0.8rem;
@@ -209,6 +233,21 @@
 
 .user-actions {
   text-align: center;
+}
+
+.table-actions {
+  display: inline-flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.sessions-toolbar {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
 }
 
 .self-indicator {
@@ -251,6 +290,12 @@
   color: #ff6b6b;
 }
 
+.alert-success {
+  background: rgba(40, 167, 69, 0.15);
+  border: 1px solid rgba(40, 167, 69, 0.4);
+  color: #8dffaf;
+}
+
 .btn {
   display: inline-block;
   padding: 0.5rem 1rem;
@@ -289,6 +334,34 @@
 
 .btn-outline-light:hover:not(:disabled) {
   background: rgba(255, 255, 255, 0.1);
+}
+
+.btn-outline-warning {
+  border-color: #ffc107;
+  color: #ffc107;
+}
+
+.btn-outline-warning:hover:not(:disabled) {
+  background: rgba(255, 193, 7, 0.12);
+}
+
+.btn-outline-danger {
+  border-color: #dc3545;
+  color: #ff6b6b;
+}
+
+.btn-outline-danger:hover:not(:disabled) {
+  background: rgba(220, 53, 69, 0.12);
+}
+
+.connected-users-card {
+  grid-column: 1 / -1;
+}
+
+.user-sessions-count {
+  text-align: center;
+  font-weight: 600;
+  color: #4a9eff;
 }
 
 @media (max-width: 768px) {

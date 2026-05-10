@@ -90,7 +90,15 @@ El administrador inicial se crea automaticamente al arrancar auth-service si no 
 ### Comportamiento segun rol
 
 - **Usuario regular** (rol `user`): al autenticarse accede a `/boveda` con su boveda personal de secretos (crear, editar, eliminar sus propios secretos).
-- **Administrador** (rol `admin`): al autenticarse accede a `/boveda` con el panel de administracion de usuarios. Puede ver todos los usuarios registrados y cambiar sus roles. No puede cambiar su propio rol.
+- **Administrador** (rol `admin`): al autenticarse accede a `/admin` con el panel de administracion. Puede:
+  - Ver todos los usuarios registrados con su estado (activo/inactivo) y rol.
+  - Ver usuarios conectados en tiempo real con contador de sesiones activas.
+  - Cambiar el rol de un usuario (user ↔ admin).
+  - Activar o desactivar cuentas de usuario.
+  - Revocar sesiones activas de usuarios individuales.
+  - Gestionar sesiones por usuario con opciones de revocación masiva.
+  - Acceder a bitácora de auditoría con registro de todas las acciones administrativas.
+  - No puede cambiar su propio rol ni desactivarse a sí mismo.
 
 Acceso de monitoreo en producción:
 
@@ -178,6 +186,49 @@ Invoke-WebRequest -Method PUT http://localhost:3000/vault/secret/1 `
 
 ```powershell
 Invoke-WebRequest -Method DELETE http://localhost:3000/vault/secret/1 `
+  -Headers @{"Authorization"="Bearer TOKEN_AQUI"}
+```
+
+### Activar o desactivar un usuario (solo admin)
+
+```powershell
+Invoke-WebRequest -Method PATCH http://localhost:3000/auth/users/2/status `
+  -Headers @{"Authorization"="Bearer TOKEN_ADMIN_AQUI"; "Content-Type"="application/json"} `
+  -Body '{"is_active":false}'
+```
+
+### Ver usuarios conectados en este momento (solo admin)
+
+```powershell
+Invoke-WebRequest -Method GET http://localhost:3000/auth/admin/active-users `
+  -Headers @{"Authorization"="Bearer TOKEN_ADMIN_AQUI"}
+```
+
+### Ver sesiones activas de un usuario (solo admin)
+
+```powershell
+Invoke-WebRequest -Method GET http://localhost:3000/auth/users/2/sessions `
+  -Headers @{"Authorization"="Bearer TOKEN_ADMIN_AQUI"}
+```
+
+### Revocar todas las sesiones de un usuario (solo admin)
+
+```powershell
+Invoke-WebRequest -Method POST http://localhost:3000/auth/users/2/sessions/revoke `
+  -Headers @{"Authorization"="Bearer TOKEN_ADMIN_AQUI"}
+```
+
+### Ver bitácora de auditoría (solo admin)
+
+```powershell
+Invoke-WebRequest -Method GET http://localhost:3000/auth/admin/audit-logs `
+  -Headers @{"Authorization"="Bearer TOKEN_ADMIN_AQUI"}
+```
+
+### Validar sesión activa
+
+```powershell
+Invoke-WebRequest -Method GET http://localhost:3000/auth/session/validate `
   -Headers @{"Authorization"="Bearer TOKEN_AQUI"}
 ```
 

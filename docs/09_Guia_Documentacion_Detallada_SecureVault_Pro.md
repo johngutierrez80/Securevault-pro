@@ -134,10 +134,15 @@ Interfaz de usuario para registro, login, gestion de secretos y administracion d
   - `RoleBasedRoute`: si el rol es `admin` renderiza `AdminPage`; si es `user` renderiza `DashboardPage`.
   - Ruta `/admin` protegida exclusivamente para administradores.
 - `frontend-spa/src/pages/DashboardPage.jsx`: boveda personal del usuario (crear, ver, editar, eliminar secretos propios).
-- `frontend-spa/src/pages/AdminPage.jsx`: panel de administracion (lista de usuarios, cambio de roles).
-- `frontend-spa/src/api/auth.js`: wrapper para login y perfil de usuario.
+- `frontend-spa/src/pages/AdminPage.jsx`: panel de administracion con multiples secciones:
+  - **Estadísticas**: total de usuarios, administradores, usuarios regulares, usuarios activos y usuarios conectados en tiempo real.
+  - **Usuarios conectados ahora**: tabla con email, rol y sesiones activas por usuario con boton de revocacion individual.
+  - **Usuarios registrados**: tabla con ID, email, estado (Activo/Inactivo), rol, y acciones (cambiar rol, activar/desactivar).
+  - **Sesiones activas**: selector de usuario, tabla de sesiones con ID, fecha de emision y expiracion, boton para revocar todas las sesiones.
+  - **Bitácora de auditoría**: registro cronologico de todas las acciones administrativas (cambio de rol, activacion/desactivacion, revocacion de sesiones).
+- `frontend-spa/src/api/auth.js`: wrapper para login, perfil de usuario y validacion de sesion.
 - `frontend-spa/src/api/vault.js`: wrapper para CRUD de secretos.
-- `frontend-spa/src/api/users.js`: wrapper para gestion de usuarios (solo admin).
+- `frontend-spa/src/api/users.js`: wrapper para gestion de usuarios, sesiones y auditoría (solo admin).
 
 **Politicas de seguridad relacionadas:**
 - Control de acceso basado en token JWT y rol de usuario.
@@ -167,21 +172,40 @@ Registro, login, emision de JWT y gestion de usuarios con control de acceso basa
 **Implementacion en el repositorio:**  
 - `servicios/auth-service/app/core/security.py`: hash y verificacion bcrypt.
 - `servicios/auth-service/app/utils/jwt.py`: creacion y verificacion de token con expiracion.
-- `servicios/auth-service/app/services/auth_service.py`: logica de negocio incluyendo `bootstrap_initial_admin()` y `build_access_token()` (sub como string).
-- `servicios/auth-service/app/routers/auth.py`: endpoints `register`, `login`, `me`, `users` y `PATCH users/{id}/role`.
+- `servicios/auth-service/app/models/user.py`: modelo ORM con columna `is_active` para estado de cuenta.
+- `servicios/auth-service/app/models/auth_session.py`: modelo ORM para tracking de sesiones activas con JTI (JWT ID).
+- `servicios/auth-service/app/models/admin_audit_log.py`: modelo ORM para bitácora de acciones administrativas.
+- `servicios/auth-service/app/services/auth_service.py`: logica de negocio incluyendo `bootstrap_initial_admin()`, `build_access_token()` con JTI, gestion de sesiones y auditoría.
+- `servicios/auth-service/app/routers/auth.py`: endpoints para autenticacion, gestion de usuarios y administracion.
 - `servicios/auth-service/app/core/config.py`: variables `BOOTSTRAP_ADMIN_EMAIL` y `BOOTSTRAP_ADMIN_PASSWORD`.
 - `servicios/auth-service/app/main.py`: hook de startup que llama `bootstrap_initial_admin()` al arrancar.
 
-**Endpoints RBAC:**
-- `GET /auth/users`: lista todos los usuarios registrados (solo administradores).
-- `PATCH /auth/users/{user_id}/role`: cambia el rol de un usuario (solo administradores; no se puede cambiar el propio rol).
+**Endpoints de autenticacion:**
+- `POST /auth/register`: crear nueva cuenta de usuario.
+- `POST /auth/login`: obtener JWT con JTI (session ID).
+- `GET /auth/me`: obtener perfil del usuario autenticado.
+- `GET /auth/session/validate`: validar JWT activo y no revocado.
+
+**Endpoints RBAC de administracion (solo admin):**
+- `GET /auth/users`: lista todos los usuarios registrados con estado y rol.
+- `PATCH /auth/users/{user_id}/role`: cambiar el rol de un usuario (user ↔ admin).
+- `PATCH /auth/users/{user_id}/status`: activar o desactivar una cuenta de usuario.
+- `GET /auth/users/{user_id}/sessions`: listar sesiones activas de un usuario.
+- `POST /auth/users/{user_id}/sessions/revoke`: revocar todas las sesiones de un usuario.
+- `GET /auth/admin/active-users`: listar usuarios conectados en tiempo real con contador de sesiones.
+- `GET /auth/admin/audit-logs`: acceso a bitácora de auditoría.
 
 **Politicas de seguridad relacionadas:**
 - No almacenar contrasenas en texto plano.
 - Tokens firmados con HS256 y con expiracion de 60 minutos.
 - Claim `sub` como string conforme RFC 7519.
+- Cada token incluye un JTI (JWT ID) unico para trazabilidad y revocacion de sesiones.
 - Administrador inicial creado de forma segura via variables de entorno, no hardcodeado en codigo.
 - Endpoints de gestion protegidos por rol; 403 Forbidden si no es administrador.
+- Tracking de sesiones activas con persistencia en tabla `auth_sessions`.
+- Revocacion de sesiones sin invalidar token JWT en JWT provider (revoke se valida en auth service).
+- Auditoría completa de acciones administrativas con timestamp, actor y objetivo.
+- Soporte para activacion/desactivacion de cuentas sin eliminar datos.
 
 **Explicacion educativa profunda:**  
 Este servicio es el control de identidad del sistema. La contrasena nunca se conserva en forma legible; solo se guarda su hash bcrypt. En login, el sistema compara hashes y, si todo es valido, entrega un pase temporal (JWT). El claim `sub` es obligatoriamente string por el estandar RFC 7519; PyJWT rechaza valores enteros con InvalidClaimsError. El RBAC asegura que acciones administrativas como listar usuarios o cambiar roles esten restringidas a cuentas con privilegio explicitamente asignado.

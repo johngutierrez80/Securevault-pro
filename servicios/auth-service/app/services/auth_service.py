@@ -1,14 +1,18 @@
 import hashlib
 import re
 import secrets
+from uuid import uuid4
 from datetime import datetime, timedelta
 
 from sqlalchemy.orm import Session
 
+from ..core.config import settings
 from ..core.security import hash_password, verify_password
+from ..models.admin_audit_log import AdminAuditLog
+from ..models.auth_session import AuthSession
 from ..models.password_reset_token import PasswordResetToken
 from ..models.user import User
-from ..utils.jwt import create_access_token
+from ..utils.jwt import create_access_token, decode_access_token
 
 EMAIL_PATTERN = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 PASSWORD_MIN_LENGTH = 10
@@ -54,7 +58,7 @@ def register_user(db: Session, email: str, password: str):
     if db.query(User).filter(User.email == email).first():
         raise ValueError("Ya existe un usuario registrado con ese correo")
     hashed = hash_password(password)
-    user = User(email=email, hashed_password=hashed, role="user")
+    user = User(email=email, hashed_password=hashed, role="user", is_active=True)
     db.add(user)
     db.commit()
     db.refresh(user)
@@ -67,13 +71,41 @@ def authenticate_user(db: Session, email: str, password: str):
     if not EMAIL_PATTERN.match(email) or not password:
         return None
     user = db.query(User).filter(User.email == email).first()
-    if user and verify_password(password, user.hashed_password):
+    if user and user.is_active and verify_password(password, user.hashed_password):
         return user
     return None
 
 
-def build_access_token(user: User) -> str:
-    return create_access_token({"user": user.email, "role": user.role, "sub": str(user.id)})
+def build_access_token(user: User, db: Session | None = None) -> str:
+    session_jti = str(uuid4())
+    token = create_access_token(
+        {
+            "user": user.email,
+            "role": user.role,
+            "sub": str(user.id),
+            "jti": session_jti,
+        }
+    )
+
+    if db is not None:
+        payload = decode_access_token(token) or {}
+        exp_ts = payload.get("exp")
+        if isinstance(exp_ts, (int, float)):
+            expires_at = datetime.utcfromtimestamp(exp_ts)
+        else:
+            expires_at = datetime.utcnow() + timedelta(minutes=settings.token_exp_minutes)
+
+        db.add(
+            AuthSession(
+                user_id=user.id,
+                token_jti=session_jti,
+                issued_at=datetime.utcnow(),
+                expires_at=expires_at,
+            )
+        )
+        db.commit()
+
+    return token
 
 
 def list_users(db: Session) -> list[User]:
@@ -93,6 +125,130 @@ def update_user_role(db: Session, user_id: int, role: str) -> User | None:
     db.commit()
     db.refresh(user)
     return user
+
+
+def update_user_status(db: Session, user_id: int, is_active: bool) -> User | None:
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        return None
+
+    user.is_active = bool(is_active)
+    db.commit()
+    db.refresh(user)
+    return user
+
+
+def get_user_by_id(db: Session, user_id: int) -> User | None:
+    return db.query(User).filter(User.id == user_id).first()
+
+
+def get_user_from_token(db: Session, token: str) -> tuple[User | None, dict | None]:
+    payload = decode_access_token(token)
+    if not payload:
+        return None, None
+
+    subject = payload.get("sub")
+    email = normalize_email(payload.get("user", ""))
+    session_jti = payload.get("jti")
+    if not subject or not email or not session_jti:
+        return None, None
+
+    try:
+        user_id = int(subject)
+    except (TypeError, ValueError):
+        return None, None
+
+    user = db.query(User).filter(User.id == user_id, User.email == email).first()
+    if not user or not user.is_active:
+        return None, None
+
+    session = (
+        db.query(AuthSession)
+        .filter(
+            AuthSession.token_jti == session_jti,
+            AuthSession.user_id == user.id,
+            AuthSession.revoked_at.is_(None),
+        )
+        .first()
+    )
+    if not session or session.expires_at < datetime.utcnow():
+        return None, None
+
+    return user, payload
+
+
+def list_active_sessions(db: Session, user_id: int | None = None) -> list[AuthSession]:
+    query = db.query(AuthSession).filter(
+        AuthSession.revoked_at.is_(None),
+        AuthSession.expires_at >= datetime.utcnow(),
+    )
+    if user_id is not None:
+        query = query.filter(AuthSession.user_id == user_id)
+    return query.order_by(AuthSession.issued_at.desc()).all()
+
+
+def revoke_sessions_for_user(db: Session, user_id: int) -> int:
+    now = datetime.utcnow()
+    updated = (
+        db.query(AuthSession)
+        .filter(
+            AuthSession.user_id == user_id,
+            AuthSession.revoked_at.is_(None),
+            AuthSession.expires_at >= now,
+        )
+        .update({AuthSession.revoked_at: now}, synchronize_session=False)
+    )
+    db.commit()
+    return int(updated)
+
+
+def write_admin_audit_log(
+    db: Session,
+    actor_user: User,
+    action: str,
+    target_user: User | None = None,
+    details: str | None = None,
+) -> AdminAuditLog:
+    entry = AdminAuditLog(
+        actor_user_id=actor_user.id,
+        actor_email=actor_user.email,
+        action=action,
+        target_user_id=target_user.id if target_user else None,
+        target_email=target_user.email if target_user else None,
+        details=details,
+    )
+    db.add(entry)
+    db.commit()
+    db.refresh(entry)
+    return entry
+
+
+def list_admin_audit_logs(db: Session, limit: int = 100) -> list[AdminAuditLog]:
+    safe_limit = min(max(limit, 1), 500)
+    return db.query(AdminAuditLog).order_by(AdminAuditLog.created_at.desc()).limit(safe_limit).all()
+
+
+def list_active_users_with_sessions(db: Session) -> list[dict]:
+    active_sessions = list_active_sessions(db)
+    user_ids = {session.user_id for session in active_sessions}
+
+    if not user_ids:
+        return []
+
+    users = db.query(User).filter(User.id.in_(user_ids)).all()
+    result = []
+    for user in users:
+        session_count = sum(1 for s in active_sessions if s.user_id == user.id)
+        result.append(
+            {
+                "id": user.id,
+                "email": user.email,
+                "role": user.role,
+                "is_active": user.is_active,
+                "active_session_count": session_count,
+            }
+        )
+    return sorted(result, key=lambda x: x["active_session_count"], reverse=True)
 
 
 def bootstrap_initial_admin(db: Session, email: str | None, password: str | None) -> bool:

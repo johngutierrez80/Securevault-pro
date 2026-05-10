@@ -6,6 +6,7 @@ class Settings(BaseSettings):
     database_url: str = "postgresql://vault:vault@postgres:5432/vaultdb"
     secret_key: str = "securevaultsecret"
     algorithm: str = "HS256"
+    auth_session_validate_url: str = "http://auth:8001/session/validate"
 
     class Config:
         env_file = ".env"

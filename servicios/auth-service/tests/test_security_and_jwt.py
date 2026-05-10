@@ -9,11 +9,14 @@ from app.services.auth_service import (
     authenticate_user,
     bootstrap_initial_admin,
     build_access_token,
+    get_user_from_token,
     list_users,
+    revoke_sessions_for_user,
     register_user,
     request_password_reset,
     reset_password,
     update_user_role,
+    update_user_status,
     validate_password_strength,
 )
 from app.utils.jwt import create_access_token, verify_token
@@ -127,5 +130,37 @@ def test_bootstrap_initial_admin_creates_admin_once():
 
         skipped = bootstrap_initial_admin(db, "other@example.com", "StrongPass1!")
         assert skipped is False
+    finally:
+        db.close()
+
+
+def test_inactive_user_cannot_authenticate():
+    db = TestingSessionLocal()
+    try:
+        user = register_user(db, "disabled@example.com", "StrongPass1!")
+        updated = update_user_status(db, user.id, False)
+
+        assert updated is not None
+        assert updated.is_active is False
+        assert authenticate_user(db, "disabled@example.com", "StrongPass1!") is None
+    finally:
+        db.close()
+
+
+def test_revoked_session_is_rejected_in_token_resolution():
+    db = TestingSessionLocal()
+    try:
+        user = register_user(db, "session@example.com", "StrongPass1!")
+        token = build_access_token(user, db)
+
+        resolved_user, _payload = get_user_from_token(db, token)
+        assert resolved_user is not None
+
+        revoked = revoke_sessions_for_user(db, user.id)
+        assert revoked >= 1
+
+        revoked_user, revoked_payload = get_user_from_token(db, token)
+        assert revoked_user is None
+        assert revoked_payload is None
     finally:
         db.close()

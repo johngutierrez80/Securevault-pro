@@ -5,6 +5,7 @@ services:
     environment:
       BOOTSTRAP_ADMIN_EMAIL: admin@securevault.local
       BOOTSTRAP_ADMIN_PASSWORD: AdminSecure123!@#
+      AUTH_SESSION_VALIDATE_URL: "http://auth:8001/session/validate"
     depends_on:
       postgres:
         condition: service_healthy
