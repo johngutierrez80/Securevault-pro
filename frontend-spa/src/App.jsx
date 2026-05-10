@@ -99,6 +99,7 @@ export default function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<LoginPage />} />
+        <Route path="/verify-email" element={<LoginPage />} />
         <Route
           path="/boveda"
           element={

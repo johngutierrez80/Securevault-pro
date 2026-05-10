@@ -28,3 +28,7 @@ class SecretResponse(BaseModel):
 
 class SecretAdminResponse(SecretResponse):
     owner: str
+
+
+class ShareSecretRequest(BaseModel):
+    to_email: str

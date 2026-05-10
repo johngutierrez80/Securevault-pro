@@ -1,5 +1,14 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
+
+const POLL_INTERVAL = 30; // segundos
+
+function formatRelative(date) {
+  const diffSec = Math.floor((Date.now() - date.getTime()) / 1000);
+  if (diffSec < 5) return "justo ahora";
+  if (diffSec < 60) return `hace ${diffSec}s`;
+  return `hace ${Math.floor(diffSec / 60)}m`;
+}
 import {
   getAdminAuditLogs,
   getActiveUsers,
@@ -8,8 +17,9 @@ import {
   revokeUserSessions,
   updateUserRole,
   updateUserStatus,
+  SessionExpiredError,
 } from "../api/users";
-import { clearAuthSession, getStoredUser } from "../api/auth";
+import { clearAuthSession, getStoredUser, deleteUser } from "../api/auth";
 import "./AdminPage.css";
 
 function readStoredUser() {
@@ -30,13 +40,17 @@ export default function AdminPage() {
   const [selectedUserId, setSelectedUserId] = useState(null);
   const [activeSessions, setActiveSessions] = useState([]);
   const [auditLogs, setAuditLogs] = useState([]);
+  const [lastUpdated, setLastUpdated] = useState(null);
+  const [countdown, setCountdown] = useState(POLL_INTERVAL);
+  const selectedUserIdRef = useRef(selectedUserId);
 
   const loadUsers = useCallback(async () => {
     try {
       const data = await getUsers();
       setUsers(data);
       setLoadError("");
-    } catch {
+    } catch (err) {
+      if (err instanceof SessionExpiredError) throw err;
       setLoadError("No se pudieron cargar los usuarios.");
     }
   }, []);
@@ -46,7 +60,8 @@ export default function AdminPage() {
       const data = await getAdminAuditLogs();
       setAuditLogs(data);
       setAuditError("");
-    } catch {
+    } catch (err) {
+      if (err instanceof SessionExpiredError) throw err;
       setAuditError("No se pudo cargar la bitácora de auditoría.");
     }
   }, []);
@@ -55,10 +70,42 @@ export default function AdminPage() {
     try {
       const data = await getActiveUsers();
       setActiveUsers(data);
-    } catch {
+    } catch (err) {
+      if (err instanceof SessionExpiredError) throw err;
       setActiveUsers([]);
     }
   }, []);
+
+  // Mantener ref sincronizado con el estado para usarlo en polling sin dependencias
+  useEffect(() => {
+    selectedUserIdRef.current = selectedUserId;
+  }, [selectedUserId]);
+
+  // Carga completa de todos los datos + resetea countdown
+  const refreshAll = useCallback(async () => {
+    const results = await Promise.allSettled([
+      loadUsers(),
+      loadAuditLogs(),
+      loadActiveUsers(),
+      selectedUserIdRef.current
+        ? loadUserSessions(selectedUserIdRef.current)
+        : Promise.resolve(),
+    ]);
+
+    // Si alguna llamada rechazó por sesión expirada/revocada → redirigir al login
+    const sessionExpired = results.some(
+      (r) => r.status === "rejected" && r.reason instanceof SessionExpiredError
+    );
+    if (sessionExpired) {
+      clearAuthSession();
+      navigate("/");
+      return;
+    }
+
+    setLastUpdated(new Date());
+    setCountdown(POLL_INTERVAL);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loadUsers, loadAuditLogs, loadActiveUsers]);
 
   const loadUserSessions = useCallback(async (userId) => {
     if (!userId) {
@@ -70,16 +117,30 @@ export default function AdminPage() {
       const data = await getUserSessions(userId);
       setActiveSessions(data);
       setSessionsError("");
-    } catch {
+    } catch (err) {
+      if (err instanceof SessionExpiredError) throw err;
       setSessionsError("No se pudieron cargar las sesiones activas.");
     }
   }, []);
 
+  // Carga inicial
   useEffect(() => {
-    loadUsers();
-    loadAuditLogs();
-    loadActiveUsers();
-  }, [loadUsers, loadAuditLogs, loadActiveUsers]);
+    refreshAll();
+  }, [refreshAll]);
+
+  // Polling automático cada POLL_INTERVAL segundos
+  useEffect(() => {
+    const pollTimer = setInterval(refreshAll, POLL_INTERVAL * 1000);
+    return () => clearInterval(pollTimer);
+  }, [refreshAll]);
+
+  // Contador regresivo visual (tick cada segundo)
+  useEffect(() => {
+    const tick = setInterval(() => {
+      setCountdown((c) => (c > 1 ? c - 1 : POLL_INTERVAL));
+    }, 1000);
+    return () => clearInterval(tick);
+  }, []);
 
   useEffect(() => {
     if (!users.length) {
@@ -129,6 +190,20 @@ export default function AdminPage() {
       );
     } catch {
       alert("No se pudo actualizar el estado del usuario.");
+    }
+  }
+
+  async function handleDeleteUser(user) {
+    if (!window.confirm(`¿Eliminar permanentemente la cuenta de ${user.email}? Esta acción no se puede deshacer.`)) {
+      return;
+    }
+    try {
+      await deleteUser(user.id);
+      await loadUsers();
+      await loadAuditLogs();
+      setActionMessage(`Usuario ${user.email} eliminado correctamente.`);
+    } catch {
+      alert("No se pudo eliminar el usuario.");
     }
   }
 
@@ -183,6 +258,27 @@ export default function AdminPage() {
         </div>
 
         <div className="admin-userbox">
+          <div className="admin-refresh-indicator">
+            <span className="refresh-countdown">
+              <i className="bi bi-arrow-repeat me-1"></i>
+              Actualiza en <strong>{countdown}s</strong>
+            </span>
+            {lastUpdated && (
+              <span className="refresh-time">
+                <i className="bi bi-clock me-1"></i>
+                {formatRelative(lastUpdated)}
+              </span>
+            )}
+            <button
+              className="btn btn-sm btn-outline-info"
+              onClick={refreshAll}
+              title="Actualizar ahora"
+            >
+              <i className="bi bi-arrow-clockwise me-1"></i>
+              Ahora
+            </button>
+          </div>
+
           <div>
             <p className="admin-user-email">{currentUser?.email || "admin@local"}</p>
             <p className="admin-user-role">Rol: {currentUser?.role || "admin"}</p>
@@ -369,6 +465,15 @@ export default function AdminPage() {
                                 <i className={`bi ${user.is_active ? "bi-person-dash" : "bi-person-check"} me-1`}></i>
                                 {user.is_active ? "Desactivar" : "Activar"}
                               </button>
+                              {user.role !== "admin" && (
+                                <button
+                                  className="btn btn-sm btn-outline-danger"
+                                  onClick={() => handleDeleteUser(user)}
+                                >
+                                  <i className="bi bi-trash me-1"></i>
+                                  Eliminar
+                                </button>
+                              )}
                             </div>
                           )}
                           {currentUser?.email === user.email && (

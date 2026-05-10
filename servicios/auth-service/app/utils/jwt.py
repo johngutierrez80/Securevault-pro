@@ -6,9 +6,10 @@ from jwt import InvalidTokenError
 from ..core.config import settings
 
 
-def create_access_token(data: dict):
+def create_access_token(data: dict, exp_minutes: int | None = None):
     to_encode = data.copy()
-    expire = datetime.utcnow() + timedelta(minutes=settings.token_exp_minutes)
+    minutes = exp_minutes if exp_minutes is not None else settings.token_exp_minutes
+    expire = datetime.utcnow() + timedelta(minutes=minutes)
     to_encode.update({"exp": expire})
     return jwt.encode(to_encode, settings.secret_key, algorithm=settings.algorithm)
 

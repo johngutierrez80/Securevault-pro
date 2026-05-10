@@ -38,3 +38,16 @@ export async function deleteSecret(id) {
   });
   if (!res.ok) throw new Error("Delete failed");
 }
+
+export async function shareSecret(id, toEmail) {
+  const res = await fetch(`/vault/secret/${id}/share`, {
+    method: "POST",
+    headers: authHeaders(),
+    body: JSON.stringify({ to_email: toEmail }),
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.detail || "Share failed");
+  }
+  return res.json();
+}

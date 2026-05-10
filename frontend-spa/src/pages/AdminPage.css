@@ -15,6 +15,33 @@
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
+.admin-refresh-indicator {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.4rem 0.85rem;
+  background: rgba(0, 212, 255, 0.07);
+  border: 1px solid rgba(0, 212, 255, 0.2);
+  border-radius: 0.5rem;
+}
+
+.refresh-countdown {
+  font-size: 0.8rem;
+  color: #a8b5c7;
+  white-space: nowrap;
+}
+
+.refresh-countdown strong {
+  color: #00d4ff;
+  font-variant-numeric: tabular-nums;
+}
+
+.refresh-time {
+  font-size: 0.75rem;
+  color: #6c8099;
+  white-space: nowrap;
+}
+
 .admin-brand {
   display: flex;
   align-items: center;

@@ -43,7 +43,7 @@ La plataforma permite a equipos de desarrollo y operaciones almacenar, rotar y a
 
 El módulo de autenticación trabaja con **correo electrónico como identificador**, aplica validación de correo y política mínima de contraseñas al registrar usuarios, y retorna un JWT que incluye el rol del usuario.
 
-También incorpora un flujo académico de **recuperación de contraseña** mediante token temporal y expone el rol autenticado para que la bóveda pueda mostrarlo.
+Incorpora flujos de **recuperación de contraseña**, **bloqueo automático de cuenta** y **expiración diferenciada de sesión por rol**.
 
 RBAC implementado:
 
@@ -65,6 +65,31 @@ RBAC implementado:
   - Tabla de usuarios conectados en tiempo real con sesiones activas y revocacion individual.
   - Gestión de sesiones por usuario con revocación masiva.
   - Bitácora de auditoría con registro de todas las acciones administrativas.
+  - **Actualización automática cada 30 segundos** con contador regresivo y botón de refresh manual.
+  - **Redirección automática al login** cuando la sesión expira o es revocada.
+
+### Seguridad de acceso: bloqueo de cuenta y recovery
+
+- **Bloqueo automático** tras 3 intentos de login fallidos consecutivos:
+  - El estado de bloqueo se almacena en Redis con TTL de 5 minutos.
+  - El login devuelve HTTP 423 (Locked) e inicia el flujo de recovery.
+  - Se envía un correo automático con un enlace directo de restablecimiento de contraseña.
+- **Enlace de recovery en el email**: contiene `?reset_token=TOKEN&email=EMAIL` apuntando al login.
+- **Frontend adaptado**:
+  - Detecta HTTP 423 y muestra banner de bloqueo (rojo).
+  - Muestra conteo regresivo de intentos restantes (3 → 2 → 1 → bloqueado).
+  - Abre automáticamente el panel de recuperación con el email y token pre-cargados del enlace.
+  - Deshabilita el botón de login mientras la cuenta está bloqueada.
+- **Al restablecer contraseña exitosamente**:
+  - El backend elimina el contador Redis (`login_fail:{email}`), desbloqueando la cuenta.
+  - El frontend limpia el estado de bloqueo y reactiva el botón de login.
+
+### Expiración de sesión diferenciada por rol
+
+| Rol | Duración JWT | Comportamiento al expirar |
+|-----|-------------|--------------------------|
+| `user` | 60 minutos | Redirige al login al siguiente request |
+| `admin` | 8 horas | Panel detecta 401, limpia sesión y redirige al login automáticamente |
 
 Cómo saber quién es admin y quién es user:
 
@@ -87,7 +112,7 @@ Ejecución (sin requiere variables de entorno):
 docker compose up -d --build
 
 # O con imágenes publicadas
-$env:IMAGE_TAG = "v1.0.0"
+$env:IMAGE_TAG = "v1.2.0"
 docker compose -f docker-compose.prod.yml up -d
 ```
 
@@ -113,7 +138,9 @@ UPDATE users SET role = 'admin' WHERE email = 'tu_correo@dominio.com';
 ### Flujo de procesamiento de secretos
 
 ```
-Usuario → POST /auth/login → API valida credenciales + emite JWT
+Usuario → POST /auth/login → API valida credenciales + emite JWT (60min user / 8h admin)
+                                        ↓
+                  Intento fallido × 3 → Redis bloquea (TTL 5min) + email recovery
                                         ↓
                             HTTP 200 OK + token (inmediato)
                                         ↓
@@ -257,7 +284,7 @@ docker compose up -d
 .\scripts\pull-images.ps1
 
 # Establecer versión
-$env:IMAGE_TAG = "v1.0.0"
+$env:IMAGE_TAG = "v1.2.0"
 
 # Iniciar stack con compose producción
 docker compose -f docker-compose.prod.yml up -d
@@ -283,7 +310,7 @@ docker compose -f docker-compose.prod.yml ps
 .\scripts\pull-images.ps1
 
 # Establecer versión (opcional, para tagging local)
-$env:IMAGE_TAG = "v1.0.0"
+$env:IMAGE_TAG = "v1.2.0"
 
 # Construir y ejecutar
 docker compose up -d --build

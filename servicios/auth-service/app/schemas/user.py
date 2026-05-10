@@ -130,3 +130,28 @@ class AdminAuditLogResponse(BaseModel):
     target_email: str | None = None
     details: str | None = None
     created_at: str
+
+
+class EmailVerificationRequest(BaseModel):
+    email: EmailStr
+    verification_token: str
+
+
+class EmailVerificationResponse(BaseModel):
+    message: str
+
+
+class ResendVerificationEmailRequest(BaseModel):
+    email: EmailStr
+
+    @field_validator("email")
+    @classmethod
+    def validate_email_field(cls, value: str) -> str:
+        normalized = value.strip().lower()
+        if not EMAIL_PATTERN.match(normalized):
+            raise ValueError("Ingresa un correo electrónico válido")
+        return normalized
+
+
+class ResendVerificationEmailResponse(BaseModel):
+    message: str

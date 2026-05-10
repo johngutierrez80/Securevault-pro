@@ -5,6 +5,7 @@ import {
   saveSecret,
   updateSecret,
   deleteSecret,
+  shareSecret,
 } from "../api/vault";
 import { clearAuthSession, getStoredUser } from "../api/auth";
 import "./DashboardPage.css";
@@ -126,6 +127,85 @@ function EditModal({ secret, onClose, onSave }) {
   );
 }
 
+function ShareModal({ secret, onClose }) {
+  const [toEmail, setToEmail] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState(null); // { ok: bool, msg: str }
+
+  async function handleSend() {
+    const email = toEmail.trim();
+    if (!email) return;
+    setLoading(true);
+    setResult(null);
+    try {
+      const data = await shareSecret(secret.id, email);
+      setResult({ ok: true, msg: data.msg || "Secreto enviado correctamente." });
+    } catch (e) {
+      setResult({ ok: false, msg: e.message || "No se pudo enviar el secreto." });
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="edit-backdrop" onClick={onClose}>
+      <div className="edit-dialog" onClick={(e) => e.stopPropagation()}>
+        <div className="edit-modal-card">
+          <h5 className="edit-modal-title">
+            <i className="bi bi-envelope-fill me-2"></i>Compartir secreto por correo
+          </h5>
+
+          <p style={{ color: "#555", fontSize: "14px", marginBottom: "16px" }}>
+            Se enviará el valor de <strong>{secret.site}</strong> al destinatario.
+            La dirección de correo debe ser de confianza.
+          </p>
+
+          {!result && (
+            <div className="edit-form-group">
+              <label className="form-label">Correo del destinatario</label>
+              <input
+                className="form-control"
+                type="email"
+                placeholder="destinatario@dominio.com"
+                value={toEmail}
+                onChange={(e) => setToEmail(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleSend()}
+                autoFocus
+                disabled={loading}
+              />
+            </div>
+          )}
+
+          {result && (
+            <div className={`alert ${result.ok ? "alert-success" : "alert-danger"}`} style={{ marginTop: "12px" }}>
+              {result.msg}
+            </div>
+          )}
+
+          <div className="edit-modal-actions" style={{ marginTop: "20px" }}>
+            <button className="btn btn-secondary" onClick={onClose}>
+              {result?.ok ? "Cerrar" : "Cancelar"}
+            </button>
+            {!result?.ok && (
+              <button
+                className="btn btn-primary"
+                onClick={handleSend}
+                disabled={loading || !toEmail.trim()}
+              >
+                {loading ? (
+                  <><i className="bi bi-hourglass-split me-1"></i>Enviando...</>
+                ) : (
+                  <><i className="bi bi-send-fill me-1"></i>Enviar</>
+                )}
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function DashboardPage() {
   const navigate = useNavigate();
   const [secrets, setSecrets] = useState([]);
@@ -137,6 +217,7 @@ export default function DashboardPage() {
   const [showNewValue, setShowNewValue] = useState(false);
   const [saveError, setSaveError] = useState("");
   const [editTarget, setEditTarget] = useState(null);
+  const [shareTarget, setShareTarget] = useState(null);
   const [currentUser] = useState(() => readStoredUser());
 
   const loadSecrets = useCallback(async () => {
@@ -203,6 +284,12 @@ export default function DashboardPage() {
           secret={editTarget}
           onClose={() => setEditTarget(null)}
           onSave={handleEditSave}
+        />
+      )}
+      {shareTarget && (
+        <ShareModal
+          secret={shareTarget}
+          onClose={() => setShareTarget(null)}
         />
       )}
 
@@ -389,6 +476,13 @@ export default function DashboardPage() {
                             onClick={() => setEditTarget(s)}
                           >
                             <i className="bi bi-pencil"></i>
+                          </button>
+                          <button
+                            className="btn btn-sm btn-info me-2"
+                            title="Compartir por correo"
+                            onClick={() => setShareTarget(s)}
+                          >
+                            <i className="bi bi-envelope-fill"></i>
                           </button>
                           <button
                             className="btn btn-sm btn-danger"

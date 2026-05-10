@@ -1,9 +1,104 @@
-# Seguridad y Riesgos
+# Seguridad y Riesgos — SecureVault Pro v1.2
 
 ## 1. Controles de seguridad implementados
 
-- Autenticacion con JWT firmado (HS256), claim `sub` como string conforme RFC 7519.
-- Expiracion de token en auth-service (60 minutos).
+- Autenticación con JWT firmado (HS256), claim `sub` como string conforme RFC 7519.
+- **Expiración de token diferenciada por rol**: 60 minutos para `user`, 480 minutos (8 horas) para `admin`.
+- **Bloqueo de cuenta automático**: tras 3 intentos de login fallidos consecutivos, la cuenta se bloquea vía Redis (clave `login_fail:{email}`, TTL 300s). Respuesta HTTP 423.
+- **Recuperación de contraseña por email**: enlace seguro con token de un solo uso. Al confirmar el reset, se elimina la clave de bloqueo en Redis.
+- **Detección de sesión expirada en frontend**: el panel admin detecta respuestas 401/403 en polling y redirige automáticamente al login, limpiando el estado de sesión local.
+- **Actualización automática del panel admin**: polling cada 30 segundos con `Promise.allSettled` para no bloquear la interfaz ante fallos parciales.
+- Verificación de token en vault-service y endpoints de administración.
+- Hash de contraseñas con bcrypt.
+- Cifrado de secretos de la bóveda con Fernet (clave fija persistente via `ENCRYPTION_KEY`).
+- Rate limiting en endpoints de vault (10/min por IP) usando Redis.
+- Control de acceso basado en roles (RBAC):
+  - Rol `user`: accede solo a sus propios secretos.
+  - Rol `admin`: gestiona usuarios y puede cambiar roles; no puede cambiar su propio rol.
+  - Endpoints admin restringidos por dependencia `require_admin`.
+- Bootstrap de administrador inicial mediante variables de entorno seguras (idempotente).
+- Worker asíncrono independiente para consumo de eventos de seguridad desde Redis.
+- Separación de servicios detrás de gateway Nginx.
+- Revocación de sesiones: JTI en tabla `auth_session`, invalidación por endpoint `POST /auth/users/{id}/sessions/revoke`.
+
+## 2. Riesgos identificados
+
+**1. Secretos hardcodeados por defecto**
+- Riesgo: exposición de `SECRET_KEY` en código si no se define variable.
+- Mitigación: mover claves a variables de entorno seguras en despliegues reales.
+
+**2. Clave de cifrado no persistente si no se define `ENCRYPTION_KEY`**
+- Riesgo: pérdida de capacidad de descifrado tras reinicio.
+- Mitigación: definir `ENCRYPTION_KEY` fija por entorno.
+
+**3. Tránsito HTTP local**
+- Riesgo: sin TLS en despliegues remotos.
+- Mitigación: usar HTTPS con certificados en gateway/ingress.
+
+**4. Frontend almacena token en localStorage**
+- Riesgo: exposición ante XSS.
+- Mitigación: endurecer CSP, sanitización, evaluar cookies HttpOnly en evolución futura.
+
+**5. Clave de bloqueo Redis sin autenticación Redis**
+- Riesgo: si Redis es accesible desde fuera, el contador de intentos podría manipularse.
+- Mitigación: aislamiento en red privada Docker, `requirepass` en producción.
+
+**6. Email de recovery enviado con Mailjet en texto plano**
+- Riesgo: el token de reset viaja en URL (logs de proxy).
+- Mitigación: tokens de un solo uso con TTL corto; considerar eliminar el token tras el primer uso.
+
+## 3. Recomendaciones para producción
+
+- Rotación periódica de claves JWT y Fernet.
+- Gestión de secretos con plataforma segura (Vault, AWS Secrets Manager, etc.).
+- Políticas de contraseña más robustas (historial, complejidad mínima).
+- Auditoría de logs y alertas de acceso anómalo vía SIEM.
+- Escaneo de dependencias (SCA) y revisión de CVEs.
+- TLS en todas las comunicaciones externas.
+- Limitar acceso a puertos de bases de datos y Redis desde fuera del host.
+- MFA (TOTP) como segundo factor en cuentas críticas.
+
+## 4. Análisis STRIDE — v1.2
+
+| Elemento o flujo | STRIDE dominante | Riesgo principal | Mitigación actual |
+|------------------|-----------------|-----------------|-------------------|
+| Usuario / navegador | Spoofing | Robo de token o suplantación de sesión | JWT + expiración diferenciada + revocación por JTI |
+| Login endpoint | Brute Force / DoS | Fuerza bruta de contraseñas | Bloqueo Redis tras 3 intentos, TTL 5 min, HTTP 423 |
+| Flujo usuario → gateway | Information Disclosure | Credenciales y tokens en tránsito | HTTPS en despliegues reales |
+| Auth Service | Elevation of Privilege | Emisión fraudulenta de JWT | Variables de entorno + rotación de SECRET_KEY |
+| Auth Service (RBAC) | Elevation of Privilege | Usuario accede a endpoints admin | Verificación de rol, 403 si no es admin |
+| Auth Service (Lockout) | Tampering | Manipulación del contador Redis | Redis en red privada, aislado del exterior |
+| Email de recovery | Information Disclosure | Token en URL (logs proxy) | Token TTL corto, un solo uso |
+| Vault Service | Elevation of Privilege | Acceso a secretos de otros usuarios | Filtro por propietario; admin ve todos |
+| Vault Service | Denial of Service | Abuso por múltiples solicitudes | Rate limiting Redis + SlowAPI (10/min) |
+| PostgreSQL | Information Disclosure | Exposición de datos sensibles | Cifrado Fernet en capa aplicación, backups protegidos |
+| Redis | Tampering | Manipulación de contadores y rate limiting | Red privada Docker, `requirepass` en producción |
+| GitHub Actions | Information Disclosure | Fuga de secretos de CI/CD | GitHub Secrets, environments protegidos |
+| Registros de imágenes | Tampering | Imágenes maliciosas en Docker Hub | Escaneo Trivy, tags versionados, control de push |
+| Deploy Workflow | Elevation of Privilege | Aprobación no autorizada | Aprobación manual en environment `production` |
+| Frontend SPA | XSS | Robo de token desde localStorage | CSP, sanitización, detección de sesión expirada |
+| Panel Admin (polling) | Session Hijacking | Token admin usado post-expiración | Detección 401/403, clearAuthSession + redirect |
+
+## 5. Cumplimiento de objetivos académicos
+
+Este proyecto demuestra controles de seguridad aplicables a entornos cloud y DevOps:
+
+- **Defensa en profundidad**: hash bcrypt + cifrado Fernet + JWT + rate limiting + bloqueo de cuenta + revocación de sesiones.
+- **Principio de mínimo privilegio**: roles RBAC diferenciados; JWT con expiración proporcional al nivel de acceso.
+- **Respuesta a incidentes**: bloqueo automático + notificación por email + limpieza de bloqueo al resolver.
+- **Monitoreo**: Prometheus, Grafana, Loki, Promtail y Falco para trazabilidad completa.
+- **Aislamiento**: cada microservicio en su contenedor, comunicación interna vía red privada Docker.
+- **Reproducibilidad**: despliegue declarativo con Docker Compose, imágenes versionadas en Docker Hub.
+
+## 6. Modelo DFD para OWASP Threat Dragon
+
+Se incluye un modelo de amenazas en formato JSON importable por OWASP Threat Dragon:
+
+- **Archivo**: `threat-model/01_SecureVault_Operativo_Threat_Dragon.json`
+  - DFD principal con trust boundary, usuario, gateway, auth-service, vault-service, PostgreSQL, Redis y amenazas STRIDE representativas. Incluye flujos de bloqueo de cuenta y recuperación de contraseña.
+- **Archivo**: `threat-model/02_SecureVault_CICD_Threat_Dragon.json`
+  - DFD de supply chain y CI/CD con GitHub, GitHub Actions, Docker Hub, aprobación de despliegue y host productivo.
+
 - Verificacion de token en vault-service y endpoints de administracion.
 - Hash de contraseñas de usuario con bcrypt.
 - Cifrado de secretos de la boveda con Fernet (clave fija persistente via `ENCRYPTION_KEY`).

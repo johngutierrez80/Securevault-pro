@@ -93,3 +93,32 @@ export async function getCurrentUser() {
   });
   return parseJsonResponse(response);
 }
+
+export async function confirmEmail(email, verificationToken) {
+  const response = await fetch("/auth/confirm-email", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      email,
+      verification_token: verificationToken,
+    }),
+  });
+  return parseJsonResponse(response);
+}
+
+export async function resendVerificationEmail(email) {
+  const response = await fetch("/auth/resend-verification-email", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email }),
+  });
+  return parseJsonResponse(response);
+}
+
+export async function deleteUser(userId) {
+  const response = await fetch(`/auth/users/${userId}`, {
+    method: "DELETE",
+    headers: { Authorization: `Bearer ${getAuthToken() || ""}` },
+  });
+  return parseJsonResponse(response);
+}
