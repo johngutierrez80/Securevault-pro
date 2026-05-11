@@ -416,37 +416,41 @@ Estas herramientas son la primera barrera contra errores humanos. El incidente m
 
 **Politica que vigilan:** codigo seguro y cadena de suministro confiable.
 
-**Resultados reales del escaneo SAST/SCA v1.2 (2025-05-10):**
+**Resultados reales del escaneo SAST/SCA v1.2 — Ronda 2 post-remediacion (2026-05-10, commit `47364ab`):**
 
 *Bandit v1.9.4 — codigo fuente Python:*
 
-| Severidad | Cantidad | Detalle |
-|-----------|----------|---------|
-| HIGH | 0 | Sin hallazgos |
-| MEDIUM | 1 | B310: `urllib.request.urlopen` en `vault-service/core/security.py:22` (URL interna, riesgo real bajo) |
-| LOW | 56 | B101 en tests (assert), B110 except-pass en Redis |
+| Severidad | Pre-remediacion | Post-remediacion P5 | Cambio |
+|-----------|----------------|---------------------|--------|
+| HIGH | 0 | 0 | = |
+| MEDIUM | 1 (B310 urlopen) | **0** ✅ | −1 (migrado a httpx) |
+| LOW | 56 | 56 | = |
 
 *SCA via OSV API — dependencias PyPI:*
 
-| Paquete | Version | CVEs | Severidad max | Impacto real |
-|---------|---------|------|--------------|-------------|
-| Jinja2 | 3.1.2 | 5 | MODERATE | Bajo — templates internos, no usuario-controlados |
-| cryptography | 41.0.7 | 7 | HIGH (x3) | Bajo-Moderado — CVEs en RSA/ECDH; SecureVault solo usa Fernet |
-| Resto de paquetes Python | — | 0 | — | Sin CVEs |
+| Paquete | Version pre | CVEs pre | Version post | CVEs post | Estado |
+|---------|------------|---------|-------------|----------|--------|
+| Jinja2 | 3.1.2 | 5 MODERATE | **3.1.6** | **0** ✅ | LIMPIO |
+| cryptography | 41.0.7 | 7 (3 HIGH) | **43.0.1** | **3** (1 HIGH, 2 LOW) | Mejorado — HIGH residual en SECT curves no afecta Fernet |
+| Resto paquetes Python | — | 0 | — | 0 | Sin CVEs |
 
 *SCA via OSV API — dependencias npm:*
 
-| Paquete | Version | CVEs | Severidad max | Impacto real |
-|---------|---------|------|--------------|-------------|
-| vite | 5.3.5 | 12 | MODERATE | No aplica en produccion — solo afecta servidor de desarrollo |
-| Resto de paquetes npm | — | 0 | — | Sin CVEs |
+| Paquete | Version pre | CVEs pre | Version post | CVEs post | Estado |
+|---------|------------|---------|-------------|----------|--------|
+| vite | 5.3.5 | 12 | **6.2.6** | **6** | Mejorado — residuales solo afectan dev-server, prod usa nginx |
+| Resto paquetes npm | — | 0 | — | 0 | Sin CVEs |
 
-**Plan de remediacion priorizado:**
-1. **P1**: Actualizar `cryptography` a `>=43.0.1` en vault-service.
-2. **P2**: Actualizar `Jinja2` a `>=3.1.6` en auth-service.
-3. **P3**: Actualizar `vite` a `>=6.2.6` en devDependencies del frontend.
+**Estado post-remediacion P1–P7 (todas implementadas):**
+1. **P1** ✅: `cryptography` `41.0.7` → `43.0.1` — de 7 a 3 CVEs (−4).
+2. **P2** ✅: `Jinja2` `3.1.2` → `3.1.6` — de 5 a 0 CVEs. LIMPIO.
+3. **P3** ✅: `vite` `5.3.5` → `^6.2.6` — de 12 a 6 CVEs (todos dev-server).
+4. **P4** ✅: ESLint warnings corregidos en `App.jsx` y `LoginPage.jsx`.
+5. **P5** ✅: `urllib.request.urlopen` migrado a `httpx` — Bandit MEDIUM = 0.
+6. **P6** ✅: Node.js 20 → 24 en CI (preparacion deprecacion junio 2026).
+7. **P7** ✅: TruffleHog configurado con `--results=verified` (sin falsos positivos).
 
-Ver detalle completo en `docs/04_Seguridad_y_Riesgos.md` seccion 10.
+Ver detalle completo y CVEs residuales aceptados en `docs/04_Seguridad_y_Riesgos.md` seccion 10.
 
 **Explicacion educativa extensa:**  
 SAST protege contra errores propios de programacion; SCA protege contra riesgos heredados de terceros. Un proyecto moderno depende de muchas librerias, y una sola dependencia vulnerable puede comprometer el sistema entero. Esta capa reduce ese riesgo continuamente. Los resultados reales demuestran que no hay vulnerabilidades de severidad ALTA en codigo propio, y que los CVEs de dependencias tienen impacto real limitado por el uso especifico que hace SecureVault Pro de cada libreria.

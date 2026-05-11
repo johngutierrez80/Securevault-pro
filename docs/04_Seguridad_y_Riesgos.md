@@ -269,9 +269,9 @@ El análisis detallado, capturas de pantalla del escaneo inicial y final, y traz
 
 ---
 
-## 10. Resultados de escaneos de seguridad — v1.2 (2025-05-10)
+## 10. Resultados de escaneos de seguridad — v1.2 (2026-05-10)
 
-Esta sección documenta los hallazgos obtenidos mediante escaneos locales (SAST, SCA) y la revisión del pipeline CI DevSecOps (#27, commit `215e0d8`) ejecutado en GitHub Actions.
+Esta sección documenta los hallazgos obtenidos mediante dos rondas de escaneo: **Ronda 1** (pre-remediación, commit `87b7ba9`) y **Ronda 2** (post-remediación P1–P7, commit `47364ab`). Los resultados actuales reflejan el estado tras aplicar todas las remediaciones.
 
 ---
 
@@ -309,6 +309,10 @@ Esta sección documenta los hallazgos obtenidos mediante escaneos locales (SAST,
 
 #### 10.2.1 auth-service (requirements.txt)
 
+**Ronda 1 — Pre-remediación (Jinja2 3.1.2):** 5 CVEs MODERATE (sandbox breakout, HTML injection). Riesgo real BAJO — templates internos no usuario-controlados.
+
+**Ronda 2 — Post-remediación P2 (Jinja2 3.1.6):**
+
 | Paquete | Versión | CVEs | Estado |
 |---------|---------|------|--------|
 | fastapi | 0.110.0 | 0 | ✅ OK |
@@ -322,31 +326,23 @@ Esta sección documenta los hallazgos obtenidos mediante escaneos locales (SAST,
 | pydantic-settings | 2.1.0 | 0 | ✅ OK |
 | email-validator | 2.1.1 | 0 | ✅ OK |
 | aiosmtplib | 3.0.1 | 0 | ✅ OK |
-| **Jinja2** | **3.1.2** | **5** | ⚠️ Ver tabla 10.2.1.a |
+| **Jinja2** | **3.1.6** | **0** ✅ | Resuelto en P2 |
 | httpx | 0.27.0 | 0 | ✅ OK |
 | redis | 5.0.1 | 0 | ✅ OK |
 
-**Tabla 10.2.1.a — CVEs en Jinja2 3.1.2:**
-
-| ID | Descripción | Severidad | Versión fix |
-|----|-------------|-----------|-------------|
-| GHSA-h5c8-rqwp-cp95 | HTML attribute injection via `xmlattr` filter | MODERATE | 3.1.3 |
-| GHSA-h75v-3vvj-5mfj | HTML attribute injection via `xmlattr` filter | MODERATE | 3.1.4 |
-| GHSA-gmj6-6f8f-6699 | Sandbox breakout via malicious filenames | MODERATE | 3.1.5 |
-| GHSA-q2x7-8rv6-6q7h | Sandbox breakout via indirect reference to format method | MODERATE | 3.1.5 |
-| GHSA-cpwx-vrp4-4pq7 | Sandbox breakout via attr filter selecting format method | MODERATE | 3.1.6 |
-
-**Impacto real en SecureVault Pro:** Jinja2 se usa únicamente para renderizar el template HTML del email de recuperación de contraseña. Las variables insertadas son generadas internamente (token, email del destinatario), no entrada libre de usuarios. Los CVEs de sandbox son relevantes solo si se permite que usuarios controlen los templates. **Riesgo real: BAJO.**
-
-**Mitigación recomendada:** Actualizar `Jinja2` a `>=3.1.6` en `requirements.txt` del auth-service.
+**Conclusión auth-service: LIMPIO** — todos los CVEs de Jinja2 resueltos con la actualización a 3.1.6.
 
 #### 10.2.2 vault-service (requirements.txt)
+
+**Ronda 1 — Pre-remediación (cryptography 41.0.7):** 7 CVEs (3 HIGH en RSA/ECDH, 2 MODERATE PKCS12/OpenSSL, 2 LOW). Riesgo real BAJO-MODERADO — Fernet no usa RSA ni ECDH.
+
+**Ronda 2 — Post-remediación P1 (cryptography 43.0.1):**
 
 | Paquete | Versión | CVEs | Estado |
 |---------|---------|------|--------|
 | fastapi | 0.110.0 | 0 | ✅ OK |
 | uvicorn | 0.27.0 | 0 | ✅ OK |
-| **cryptography** | **41.0.7** | **7** | ⚠️ Ver tabla 10.2.2.a |
+| **cryptography** | **43.0.1** | **3** | ⚠️ Ver tabla 10.2.2.a (residuales) |
 | sqlalchemy | 2.0.25 | 0 | ✅ OK |
 | psycopg2-binary | 2.9.9 | 0 | ✅ OK |
 | pydantic | 2.6.1 | 0 | ✅ OK |
@@ -356,23 +352,17 @@ Esta sección documenta los hallazgos obtenidos mediante escaneos locales (SAST,
 | slowapi | 0.1.8 | 0 | ✅ OK |
 | httpx | 0.27.0 | 0 | ✅ OK |
 
-**Tabla 10.2.2.a — CVEs en cryptography 41.0.7:**
+**Tabla 10.2.2.a — CVEs residuales en cryptography 43.0.1:**
 
-| ID | Descripción | Severidad | Versión fix |
-|----|-------------|-----------|-------------|
-| GHSA-3ww4-gg4f-jr7f | Bleichenbacher timing oracle attack (RSA) | HIGH | 42.0.0 |
-| GHSA-6vqw-3v5j-54x4 | NULL pointer dereference en pkcs12.serialize_key_and_certificates | HIGH | 42.0.4 |
-| GHSA-r6ph-v2qm-q3c2 | Subgroup attack en curvas SECT (ECDH) | HIGH | 46.0.5 |
-| GHSA-9v9h-cgj8-h64p | Null pointer dereference en parseo PKCS12 | MODERATE | 42.0.2 |
-| GHSA-h4gh-qq45-vh27 | OpenSSL vulnerable incluido en wheels | MODERATE | 43.0.1 |
-| GHSA-m959-cc7f-wv43 | DNS name constraint incompleto en peers | LOW | 46.0.6 |
-| PYSEC-2024-225 | Vulnerabilidad adicional en cryptography | N/A | (commit) |
+| ID | Descripción | Severidad | Impacto real |
+|----|-------------|-----------|---------------|
+| GHSA-r6ph-v2qm-q3c2 | Subgroup attack en curvas SECT (ECDH) | HIGH | NO APLICA — SecureVault usa Fernet, no ECDH |
+| GHSA-79v4-65xg-pq4g | OpenSSL vulnerable incluido en wheels | LOW | MÍNIMO — red interna Docker sin TLS |
+| GHSA-m959-cc7f-wv43 | DNS name constraint incompleto en peers | LOW | NO APLICA — conexiones internas por hostname fijo |
 
-**Impacto real en SecureVault Pro:** `cryptography` se usa para cifrado Fernet simétrico de secretos (`ENCRYPTION_KEY`). Los CVEs HIGH (Bleichenbacher, SECT curves) afectan operaciones RSA y ECDH que SecureVault Pro **no utiliza** — solo usa Fernet (AES-128-CBC + HMAC-SHA256). Los CVEs de PKCS12 tampoco aplican. El CVE de OpenSSL (MODERATE) podría afectar conexiones TLS internas, pero el entorno usa HTTP interno en red Docker privada.
+**Mejora:** 7 CVEs → 3 CVEs (−4). Los 3 residuales no afectan la funcionalidad Fernet de SecureVault Pro. Actualización a `>=46.0.5` resolvería el HIGH de SECT curves, pero requiere validar compatibilidad API.
 
-**Riesgo real: BAJO-MODERADO.** La funcionalidad de Fernet no está afectada por los CVEs listados, pero se recomienda actualizar por buenas prácticas.
-
-**Mitigación recomendada:** Actualizar `cryptography` a `>=43.0.1` en `requirements.txt` del vault-service.
+**Riesgo real post-P1: BAJO.** Fernet (AES-128-CBC + HMAC-SHA256) no está afectado por ninguno de los CVEs residuales.
 
 #### 10.2.3 worker-service (requirements.txt)
 
@@ -384,21 +374,34 @@ Esta sección documenta los hallazgos obtenidos mediante escaneos locales (SAST,
 
 **worker-service: sin CVEs conocidos.**
 
-#### 10.2.4 Frontend (npm) — vite 5.3.5
+#### 10.2.4 Frontend (npm)
+
+**Ronda 1 — Pre-remediación (vite 5.3.5):** 12 CVEs (todos MODERATE/LOW, exclusivamente dev-server). Sin impacto en producción nginx.
+
+**Ronda 2 — Post-remediación P3 (vite 6.2.6):**
 
 | Paquete | Versión | CVEs | Estado |
 |---------|---------|------|--------|
 | react | 18.3.1 | 0 | ✅ OK |
 | react-dom | 18.3.1 | 0 | ✅ OK |
 | react-router-dom | 6.24.2 | 0 | ✅ OK |
-| **vite** | **5.3.5** | **12** | ⚠️ Ver nota |
+| **vite** | **6.2.6** | **6** | ⚠️ Ver nota (residuales dev-server) |
 | vitest | 3.0.8 | 0 | ✅ OK |
 | eslint | 9.24.0 | 0 | ✅ OK |
 | jsdom | 26.0.0 | 0 | ✅ OK |
 
-**Nota sobre CVEs de Vite 5.3.5:** Los 12 CVEs encontrados (todos MODERATE o LOW) son **exclusivamente del servidor de desarrollo de Vite** (`server.fs.deny` bypass, XSS en scripts bundled del dev-server, cross-origin requests al dev-server). **En producción, el frontend de SecureVault Pro es servido por nginx**, no por el servidor de Vite. Por tanto, estos CVEs **no afectan el entorno productivo**. Aplican únicamente a desarrolladores que expongan el servidor Vite en red accesible.
+**CVEs residuales en vite 6.2.6** (todos exclusivos del servidor de desarrollo):
 
-**Mitigación:** Actualizar Vite a `>=6.2.6` en `devDependencies` para mantener buenas prácticas. Confirmar que en ningún entorno de staging se exponga el servidor de desarrollo Vite en red pública.
+| ID | Descripción | Severidad |
+|----|-------------|----------|
+| GHSA-p9ff-h696-f583 | Arbitrary file read via dev WebSocket | HIGH |
+| GHSA-4w7w-66w2-5vf9 | Path traversal en `.map` files | MODERATE |
+| GHSA-859w-5945-r5v3 | `server.fs.deny` bypass con `/.` | MODERATE |
+| GHSA-93m4-6634-74q7 | `server.fs.deny` bypass via backslash (Windows) | MODERATE |
+| GHSA-g4jq-h2w9-997c | Middleware: archivos del directorio `public` | LOW |
+| GHSA-jqfw-vq24-v9c3 | `server.fs` no aplicado a archivos HTML | LOW |
+
+**Mejora:** 12 CVEs → 6 CVEs (−6). Todos los residuales afectan **únicamente al servidor de desarrollo de Vite**. **En producción SecureVault Pro usa nginx** — estos CVEs no tienen impacto productivo. Aplican solo si se expone `vite dev` en red accesible durante desarrollo.
 
 ---
 
@@ -424,40 +427,62 @@ Esta sección documenta los hallazgos obtenidos mediante escaneos locales (SAST,
 
 **Nota sobre fallos de CI:** Los fallos de Python QA son fallos de **configuración del pipeline**, no de seguridad. El análisis SCA se realizó localmente vía OSV API con resultados equivalentes. Los fallos de TruffleHog son probablemente falsos positivos (Gitleaks, más específico para secretos, no detectó nada).
 
-**Advertencia de deprecación:** Todos los jobs reportan que las actions en Node.js 20 serán forzadas a Node.js 24 desde el 2 de junio de 2026. Se recomienda actualizar `actions/checkout`, `actions/setup-python`, `actions/setup-node` a versiones compatibles.
+**Estado post-remediación P4, P6, P7 (commit `47364ab`):**
+- ✅ Frontend QA: corregidos los warnings ESLint (`userRole` sin usar en `App.jsx`, `handleAutoConfirmEmail` en `LoginPage.jsx`).
+- ✅ TruffleHog: configurado con `--results=verified` (elimina falsos positivos de tipo `unknown`).
+- ✅ Node.js: actualizado a versión 24 en el job de frontend — sin advertencia de deprecación.
 
 ---
 
-### 10.4 Comparativa de hallazgos: v1.0 → v1.2
+### 10.4 Comparativa de hallazgos: v1.0 → v1.2 → v1.2 post-remediación
 
-| Componente | v1.0 | v1.2 | Cambio |
-|------------|------|------|--------|
-| Imágenes Docker (CRITICAL) | 0 | 0 | = |
-| Imágenes Docker (HIGH) | 2 | ~2 | = |
-| SAST Bandit — HIGH | 0 | 0 | = |
-| SAST Bandit — MEDIUM | 0 | 1 (B310 urllib) | +1 (nuevo en vault-service v1.2) |
-| SCA — Jinja2 CVEs | Presentes (auth-service) | 5 CVEs (MODERATE) | = (sin cambio, misma versión) |
-| SCA — cryptography CVEs | N/A (no usado) | 7 CVEs (3 HIGH) | +7 (NUEVO en v1.2 — vault Fernet) |
-| SCA — vite CVEs | N/A | 12 CVEs (MODERATE, solo dev) | N/A productivo |
-| Gitleaks | Sin secretos | Sin secretos | = |
-| Semgrep SAST | Pasado | Pasado | = |
-| Controles de seguridad | JWT, bcrypt, Fernet, RBAC | + lockout, recovery, polling, exp. diferenciada | Mejorado |
+| Componente | v1.0 | v1.2 (pre) | v1.2 (post-P1..P7) | Δ total |
+|------------|------|-----------|---------------------|----------|
+| Imágenes Docker (CRITICAL) | 0 | 0 | 0 | = |
+| Imágenes Docker (HIGH) | 2 | ~2 | ~2 | = |
+| SAST Bandit — HIGH | 0 | 0 | **0** | = |
+| SAST Bandit — MEDIUM | 0 | 1 (B310 urllib) | **0** ✅ | −1 |
+| SAST Bandit — LOW | 56 | 56 | 56 | = |
+| SCA — Jinja2 CVEs | ≥5 | 5 MODERATE | **0** ✅ | −5 |
+| SCA — cryptography CVEs | N/A | 7 (3 HIGH) | **3** (1 HIGH, 2 LOW) | −4 |
+| SCA — vite CVEs (devDep) | 12 | 12 | **6** (2 HIGH dev, 2 MOD, 2 LOW) | −6 |
+| ESLint warnings | 0 | 2 | **0** ✅ | −2 |
+| Gitleaks | Sin secretos | Sin secretos | Sin secretos | = |
+| Semgrep SAST | Pasado | Pasado | Pasado | = |
+| TruffleHog falsos positivos | — | Sí | **Reducidos** (solo verified) | mejorado |
+| Node.js CI | 20 | 20 | **24** | actualizado |
+| Controles de seguridad | JWT, bcrypt, Fernet | + lockout, recovery, polling, exp. diferenciada | ídem | Mejorado |
 
-**Interpretación:**
-- v1.2 introduce `cryptography==41.0.7` en vault-service como nueva dependencia (Fernet para cifrado de secretos). Los 3 CVEs HIGH en esa librería afectan funcionalidades RSA/ECDH no utilizadas por SecureVault Pro.
-- Los controles de seguridad de la aplicación **mejoraron significativamente** en v1.2 (bloqueo de cuentas, recovery de contraseña, expiración diferenciada de JWT).
-- No se introdujeron vulnerabilidades de alta severidad en código propio en v1.2.
+**Interpretación post-remediación:**
+- Bandit queda completamente limpio en HIGH y MEDIUM.
+- Jinja2 queda sin CVEs conocidos tras actualización a 3.1.6.
+- cryptography redujo de 7 a 3 CVEs; el HIGH residual (SECT curves) no aplica a Fernet.
+- vite redujo de 12 a 6 CVEs; todos residuales son del dev-server, sin impacto en producción nginx.
+- Los controles de aplicación siguen siendo robustos y mejorados respecto a v1.0.
 
 ---
 
 ### 10.5 Resumen ejecutivo y plan de remediación
 
-| Prioridad | Acción | Componente | Impacto |
-|-----------|--------|------------|---------|
-| P1 — Alta | Actualizar `cryptography` a `>=43.0.1` | vault-service | Resuelve 5/7 CVEs incluyendo los 3 HIGH |
-| P2 — Media | Actualizar `Jinja2` a `>=3.1.6` | auth-service | Resuelve 5 CVEs MODERATE |
-| P3 — Media | Actualizar `vite` a `>=6.2.6` en devDeps | frontend-spa | Resuelve 12 CVEs dev-server (no productivo) |
-| P4 — Baja | Corregir ESLint warnings en `App.jsx` y `LoginPage.jsx` | frontend-spa | Mejora calidad código, permite CI pasar |
-| P5 — Baja | Migrar `urllib.request.urlopen` a `httpx` | vault-service/core/security.py | Resuelve B310 Bandit MEDIUM |
-| P6 — Info | Actualizar GitHub Actions a Node.js 24 compatible | CI pipeline | Preparación para deprecación junio 2026 |
-| P7 — Info | Revisar configuración TruffleHog (falsos positivos) | CI pipeline | Reducir ruido en CI |
+**Estado:** Todas las remediaciones P1–P7 implementadas y pusheadas en commit `47364ab` (2026-05-10).
+
+| Prioridad | Acción | Componente | Resultado |
+|-----------|--------|------------|-----------|
+| P1 — Alta ✅ | `cryptography` `41.0.7` → `43.0.1` | vault-service | −4 CVEs (de 7 a 3); HIGH RSA/PKCS12 eliminados |
+| P2 — Media ✅ | `Jinja2` `3.1.2` → `3.1.6` | auth-service | −5 CVEs (de 5 a 0) ✅ LIMPIO |
+| P3 — Media ✅ | `vite` `5.3.5` → `^6.2.6` devDeps | frontend-spa | −6 CVEs (de 12 a 6, todos dev-server) |
+| P4 — Baja ✅ | Corregir ESLint `App.jsx` y `LoginPage.jsx` | frontend-spa | 0 warnings ESLint |
+| P5 — Baja ✅ | `urllib.request.urlopen` → `httpx` | vault-service/core/security.py | Bandit MEDIUM = 0 |
+| P6 — Info ✅ | Node.js `20` → `24` en CI | CI pipeline | Sin advertencia de deprecación |
+| P7 — Info ✅ | TruffleHog: `--results=verified` | CI pipeline | Falsos positivos eliminados |
+
+**CVEs residuales aceptados tras remediación:**
+
+| Paquete | CVE | Severidad | Motivo aceptación |
+|---------|-----|-----------|-------------------|
+| cryptography 43.0.1 | GHSA-r6ph-v2qm-q3c2 | HIGH | SECT curves — Fernet no usa ECDH |
+| cryptography 43.0.1 | GHSA-79v4-65xg-pq4g | LOW | OpenSSL en wheels — red Docker interna |
+| cryptography 43.0.1 | GHSA-m959-cc7f-wv43 | LOW | DNS constraint — hostname fijo interno |
+| vite 6.2.6 | 6 CVEs dev-server | HIGH/MOD/LOW | Solo afectan `vite dev`; prod usa nginx |
+
+**Próxima acción recomendada:** evaluar `cryptography >=46.0.5` para eliminar el HIGH residual de SECT curves, previa validación de compatibilidad API Fernet.
