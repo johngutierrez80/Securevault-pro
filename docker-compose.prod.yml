@@ -1,6 +1,6 @@
 services:
   auth:
-    image: docker.io/necromanoger/securevault-auth:${IMAGE_TAG:-v1.2.0}
+    image: docker.io/necromanoger/securevault-auth:${IMAGE_TAG:-v1.2.1}
     restart: unless-stopped
     environment:
       BOOTSTRAP_ADMIN_EMAIL: admin@securevault.local
@@ -11,7 +11,7 @@ services:
         condition: service_healthy
 
   vault:
-    image: docker.io/necromanoger/securevault-vault:${IMAGE_TAG:-v1.2.0}
+    image: docker.io/necromanoger/securevault-vault:${IMAGE_TAG:-v1.2.1}
     restart: unless-stopped
     environment:
       ENCRYPTION_KEY: "GmZ-xxg5FHVoxvS7hwsNOHYPgrlefsRIa74WRSZoYDc="
@@ -22,7 +22,7 @@ services:
         condition: service_healthy
 
   worker:
-    image: docker.io/necromanoger/securevault-worker:${IMAGE_TAG:-v1.2.0}
+    image: docker.io/necromanoger/securevault-worker:${IMAGE_TAG:-v1.2.1}
     restart: unless-stopped
     depends_on:
       redis:
@@ -55,7 +55,7 @@ services:
       retries: 5
 
   gateway:
-    image: docker.io/necromanoger/securevault-frontend:${IMAGE_TAG:-v1.2.0}
+    image: docker.io/necromanoger/securevault-frontend:${IMAGE_TAG:-v1.2.1}
     restart: unless-stopped
     ports:
       - "3000:80"
