@@ -324,3 +324,48 @@ Ver `docs/05_Plan_Pruebas.md` secciones 4, 5 y 6 para los casos completos:
 - CP-18: Token user con `exp` = 60 min
 - CP-19: Redirect al expirar sesión admin
 - CP-20 a CP-24: Panel admin polling y operaciones
+
+---
+
+## 10. Remediaciones de seguridad DevSecOps (P1–P9)
+
+Tras implementar las funcionalidades de v1.2, se realizó una auditoría de seguridad completa con herramientas SAST y SCA. Los resultados iniciales revelaron 10 CVEs y 1 hallazgo MEDIUM de Bandit. Las remediaciones se aplicaron en nueve pasos (P1–P9), con commits rastreables en el repositorio.
+
+### 10.1 Tabla de remediaciones aplicadas
+
+| ID | Herramienta | Hallazgo inicial | Solución aplicada | Resultado |
+|----|-------------|-----------------|-------------------|-----------|
+| P1 | SCA (OSV) | `cryptography 41.0.7` — 7 CVEs (3 HIGH, 2 MOD, 2 LOW) | Actualizar a `43.0.1` | Parcial — 3 CVEs residuales |
+| P2 | SCA (OSV) | `Jinja2 3.1.2` — 1 CVE HIGH (GHSA-h75v-3vvj-5mfj) | Actualizar a `3.1.6` | ✅ 0 CVEs |
+| P3 | SCA (OSV) | `vite 5.3.5` — 5 CVEs | Actualizar a `6.2.6` | ✅ 0 CVEs en v6.2.6 |
+| P4 | ESLint | Warnings prop-types/react-hooks en frontend | Corregir `App.jsx` y `LoginPage.jsx` | ✅ 0 warnings |
+| P5 | SAST Bandit B310 | `urllib.request.urlopen()` MEDIUM en vault-service | Migrar a `httpx` | ✅ 0 MEDIUM |
+| P6 | CI/CD | Node.js 20 en GitHub Actions | Actualizar a Node.js 24 (LTS actual) | ✅ Actualizado |
+| P7 | CI/CD | TruffleHog sin `--results=verified` | Agregar flag `--results=verified` | ✅ Menos falsos positivos |
+| P8 | SCA (OSV) | `cryptography 43.0.1` — 3 CVEs residuales | Actualizar a versión mayor `46.0.7` | ✅ 0 CVEs |
+| P9 | SCA (OSV) | `vite 6.2.6` — 1 CVE MODERATE | Actualizar a `6.3.4` | 5 CVEs residuales (dev-server) |
+
+### 10.2 Estado final de dependencias
+
+| Paquete | Versión inicial | Versión final | CVEs inicial | CVEs final |
+|---------|----------------|---------------|:---:|:---:|
+| `cryptography` | `41.0.7` | **`46.0.7`** | 7 | **0** ✅ |
+| `Jinja2` | `3.1.2` | **`3.1.6`** | 1 | **0** ✅ |
+| `vite` | `5.3.5` | **`6.3.4`** | 5 | 5 (dev-server) |
+| Todas las demás | — | sin cambio | 0 | **0** ✅ |
+
+### 10.3 Resultado final SAST — Bandit v1.9.4
+
+| Severidad | Pre-remediación | Post-remediación |
+|-----------|:---:|:---:|
+| HIGH | 0 | **0** ✅ |
+| MEDIUM | 1 (B310 urllib) | **0** ✅ |
+| LOW | 56 | 56 (B101 assert en tests, B110 except-pass Redis) |
+
+### 10.4 Notas sobre CVEs residuales de vite 6.3.4
+
+Los 5 CVEs residuales afectan **exclusivamente al servidor de desarrollo** (`vite dev`, `--host`). SecureVault Pro utiliza Vite **solo como herramienta de build**: el contenedor de producción sirve archivos estáticos compilados mediante Nginx (multi-stage build). El riesgo en producción es **nulo**.
+
+Actualizar a `vite 8.x` (fix completo) introduce cambios breaking en CJS interop, minificación y `manualChunks` — evaluado y pospuesto por riesgo de regresión sin beneficio de seguridad en producción.
+
+Ver análisis detallado en [docs/04_Seguridad_y_Riesgos.md](04_Seguridad_y_Riesgos.md) sección 10.

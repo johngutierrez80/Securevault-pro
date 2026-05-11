@@ -76,6 +76,16 @@
 - [ ] SCA integrado (Trivy/pip-audit/npm audit)
 - [ ] DAST automatizado (OWASP ZAP)
 
+### Remediaciones DevSecOps aplicadas (P1–P9)
+
+- [ ] SAST Bandit: **0 HIGH, 0 MEDIUM** (56 LOW — B101 assert en tests, B110 Redis except-pass aceptados)
+- [ ] SCA `cryptography`: versión `46.0.7` — **0 CVEs** ✅ (actualizó desde `41.0.7` eliminando 7 CVEs)
+- [ ] SCA `Jinja2`: versión `3.1.6` — **0 CVEs** ✅ (actualizó desde `3.1.2` eliminando 1 CVE HIGH)
+- [ ] SCA `vite`: versión `6.3.4` — 5 CVEs residuales (dev-server únicamente, riesgo nulo en producción)
+- [ ] `urllib` migrado a `httpx` en vault-service (elimina Bandit B310 MEDIUM)
+- [ ] Node.js `24` en GitHub Actions CI (actualizado desde v20)
+- [ ] TruffleHog con `--results=verified` (reduce falsos positivos en secret scanning)
+
 ## 5. Pipeline DevSecOps por fases
 
 - [ ] Plan: Threat modeling en OWASP Threat Dragon + STRIDE
