@@ -601,7 +601,7 @@ flowchart LR
 | Runtime compromise | Falco con reglas base | Necesita tuning por entorno | Ajustar reglas y alertas integradas |
 | Fuerza bruta en login | Bloqueo Redis tras 3 intentos (HTTP 423, TTL 300s) + notificacion email | Redis sin autenticacion en entorno local | Activar `requirepass` en Redis de produccion |
 | Token de recovery en URL (logs proxy) | Token OTP de un solo uso con TTL corto | Token visible en historial del navegador | Eliminar token del URL tras primer uso |
-| CVE en `cryptography 41.0.7` | Fernet (AES+HMAC) no usa las funciones vulnerables (RSA/ECDH) | Superficie OpenSSL en el wheel | Actualizar a `>=43.0.1` (P1 del plan de remediacion) |
+| CVE en `cryptography 41.0.7` | Fernet (AES+HMAC) no usa las funciones vulnerables (RSA/ECDH) | Superficie OpenSSL en el wheel | Actualizado a `46.0.7` — sin CVEs conocidos |
 | CVE en `Jinja2 3.1.2` | Templates internos sin entrada de usuario | Sandbox breakout si se expusieran templates | Actualizar a `>=3.1.6` (P2 del plan de remediacion) |
 
 ---
@@ -661,7 +661,7 @@ Fortalezas:
 - Escaneos locales (Bandit, OSV API) confirman: 0 hallazgos HIGH en codigo propio; CVEs de dependencias sin impacto real en la funcionalidad usada.
 
 Recomendaciones prioritarias para evolucion a produccion estricta:
-1. **P1**: Actualizar `cryptography` a `>=43.0.1` (vault-service) y `Jinja2` a `>=3.1.6` (auth-service).
+1. **P1**: Actualizar `cryptography` a `>=43.0.1` (vault-service) y `Jinja2` a `>=3.1.6` (auth-service). Implementado: `cryptography` → `46.0.7` (0 CVEs).
 2. Migrar gestion de sesion a cookies HttpOnly y reforzar CSP.
 3. Habilitar TLS de extremo a extremo en todos los entornos remotos.
 4. Externalizar secretos a gestor dedicado (por ejemplo, Vault/KMS).

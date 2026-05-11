@@ -53,7 +53,7 @@
 - Gestión de secretos con plataforma segura (Vault, AWS Secrets Manager, etc.).
 - Políticas de contraseña más robustas (historial, complejidad mínima).
 - Auditoría de logs y alertas de acceso anómalo vía SIEM.
-- **Escaneo de dependencias (SCA) continuo**: actualizar `cryptography` a `>=43.0.1` y `Jinja2` a `>=3.1.6` (ver sección 10.5).
+- **Escaneo de dependencias (SCA) continuo**: `cryptography` actualizado a `46.0.7` (0 CVEs), `Jinja2` a `3.1.6` (0 CVEs), `vite` a `6.3.4` (5 CVEs residuales dev-server, sin impacto producción — ver sección 10.2.4).
 - TLS en todas las comunicaciones externas.
 - Limitar acceso a puertos de bases de datos y Redis desde fuera del host.
 - MFA (TOTP) como segundo factor en cuentas críticas.
@@ -336,13 +336,15 @@ Esta sección documenta los hallazgos obtenidos mediante dos rondas de escaneo: 
 
 **Ronda 1 — Pre-remediación (cryptography 41.0.7):** 7 CVEs (3 HIGH en RSA/ECDH, 2 MODERATE PKCS12/OpenSSL, 2 LOW). Riesgo real BAJO-MODERADO — Fernet no usa RSA ni ECDH.
 
-**Ronda 2 — Post-remediación P1 (cryptography 43.0.1):**
+**Ronda 2 — Post-remediación P1 (cryptography 43.0.1):** 7 CVEs → 3 CVEs (−4). Residuales no afectaban a Fernet.
+
+**Ronda 3 — Actualización versión mayor (cryptography 46.0.7, commit `a8d3d35`):**
 
 | Paquete | Versión | CVEs | Estado |
 |---------|---------|------|--------|
 | fastapi | 0.110.0 | 0 | ✅ OK |
 | uvicorn | 0.27.0 | 0 | ✅ OK |
-| **cryptography** | **43.0.1** | **3** | ⚠️ Ver tabla 10.2.2.a (residuales) |
+| **cryptography** | **46.0.7** | **0** | ✅ LIMPIO |
 | sqlalchemy | 2.0.25 | 0 | ✅ OK |
 | psycopg2-binary | 2.9.9 | 0 | ✅ OK |
 | pydantic | 2.6.1 | 0 | ✅ OK |
@@ -352,17 +354,9 @@ Esta sección documenta los hallazgos obtenidos mediante dos rondas de escaneo: 
 | slowapi | 0.1.8 | 0 | ✅ OK |
 | httpx | 0.27.0 | 0 | ✅ OK |
 
-**Tabla 10.2.2.a — CVEs residuales en cryptography 43.0.1:**
+**Evaluación de compatibilidad previa a la actualización:** El código solo usa `from cryptography.fernet import Fernet` — API estable sin cambios breaking entre v43 y v46 (verificado en changelog oficial). Solo se removieron clases que SecureVault nunca usa: curvas SECT binary, CAST5, SEED, IDEA, Blowfish.
 
-| ID | Descripción | Severidad | Impacto real |
-|----|-------------|-----------|---------------|
-| GHSA-r6ph-v2qm-q3c2 | Subgroup attack en curvas SECT (ECDH) | HIGH | NO APLICA — SecureVault usa Fernet, no ECDH |
-| GHSA-79v4-65xg-pq4g | OpenSSL vulnerable incluido en wheels | LOW | MÍNIMO — red interna Docker sin TLS |
-| GHSA-m959-cc7f-wv43 | DNS name constraint incompleto en peers | LOW | NO APLICA — conexiones internas por hostname fijo |
-
-**Mejora:** 7 CVEs → 3 CVEs (−4). Los 3 residuales no afectan la funcionalidad Fernet de SecureVault Pro. Actualización a `>=46.0.5` resolvería el HIGH de SECT curves, pero requiere validar compatibilidad API.
-
-**Riesgo real post-P1: BAJO.** Fernet (AES-128-CBC + HMAC-SHA256) no está afectado por ninguno de los CVEs residuales.
+**Mejora acumulada:** 7 CVEs → 0 CVEs (−7). **vault-service completamente limpio.**
 
 #### 10.2.3 worker-service (requirements.txt)
 
@@ -378,30 +372,33 @@ Esta sección documenta los hallazgos obtenidos mediante dos rondas de escaneo: 
 
 **Ronda 1 — Pre-remediación (vite 5.3.5):** 12 CVEs (todos MODERATE/LOW, exclusivamente dev-server). Sin impacto en producción nginx.
 
-**Ronda 2 — Post-remediación P3 (vite 6.2.6):**
+**Ronda 2 — Post-remediación P3 (vite 6.2.6):** 12 CVEs → 6 CVEs (−6). Todos residuales en dev-server.
+
+**Ronda 3 — Actualización versión menor (vite 6.3.4, commit `a8d3d35`):**
 
 | Paquete | Versión | CVEs | Estado |
 |---------|---------|------|--------|
 | react | 18.3.1 | 0 | ✅ OK |
 | react-dom | 18.3.1 | 0 | ✅ OK |
 | react-router-dom | 6.24.2 | 0 | ✅ OK |
-| **vite** | **6.2.6** | **6** | ⚠️ Ver nota (residuales dev-server) |
+| **vite** | **6.3.4** | **5** | ⚠️ Ver tabla 10.2.4.a (dev-server only) |
 | vitest | 3.0.8 | 0 | ✅ OK |
 | eslint | 9.24.0 | 0 | ✅ OK |
 | jsdom | 26.0.0 | 0 | ✅ OK |
 
-**CVEs residuales en vite 6.2.6** (todos exclusivos del servidor de desarrollo):
+**Tabla 10.2.4.a — CVEs residuales en vite 6.3.4** (todos exclusivos del servidor de desarrollo):
 
-| ID | Descripción | Severidad |
-|----|-------------|----------|
-| GHSA-p9ff-h696-f583 | Arbitrary file read via dev WebSocket | HIGH |
-| GHSA-4w7w-66w2-5vf9 | Path traversal en `.map` files | MODERATE |
-| GHSA-859w-5945-r5v3 | `server.fs.deny` bypass con `/.` | MODERATE |
-| GHSA-93m4-6634-74q7 | `server.fs.deny` bypass via backslash (Windows) | MODERATE |
-| GHSA-g4jq-h2w9-997c | Middleware: archivos del directorio `public` | LOW |
-| GHSA-jqfw-vq24-v9c3 | `server.fs` no aplicado a archivos HTML | LOW |
+| ID | Descripción | Severidad | Fix mínimo |
+|----|-------------|----------|------------|
+| GHSA-p9ff-h696-f583 | Arbitrary file read via dev WebSocket | HIGH | 8.0.5 |
+| GHSA-4w7w-66w2-5vf9 | Path traversal en `.map` files | MODERATE | 8.0.5 |
+| GHSA-93m4-6634-74q7 | `server.fs.deny` bypass via backslash (Windows) | MODERATE | 7.1.11 |
+| GHSA-g4jq-h2w9-997c | Middleware: archivos del directorio `public` | LOW | 7.1.5 |
+| GHSA-jqfw-vq24-v9c3 | `server.fs` no aplicado a archivos HTML | LOW | 7.1.5 |
 
-**Mejora:** 12 CVEs → 6 CVEs (−6). Todos los residuales afectan **únicamente al servidor de desarrollo de Vite**. **En producción SecureVault Pro usa nginx** — estos CVEs no tienen impacto productivo. Aplican solo si se expone `vite dev` en red accesible durante desarrollo.
+**Riesgo residual aceptado:** Vite es `devDependency`. En producción solo se ejecuta `vite build`; el servidor de desarrollo no corre. La config limita el dev-server a `host: "localhost"`. Los fix para el HIGH (8.0.5) y MODs (7.1.11) requieren saltos de versión mayor (v7/v8) con breaking changes en Rolldown/Oxc — pendiente evaluación en branch separado.
+
+**Mejora acumulada:** 12 CVEs → 5 CVEs (−7). GHSA-859w-5945-r5v3 (MODERATE) eliminado con 6.3.4.
 
 ---
 
@@ -444,8 +441,8 @@ Esta sección documenta los hallazgos obtenidos mediante dos rondas de escaneo: 
 | SAST Bandit — MEDIUM | 0 | 1 (B310 urllib) | **0** ✅ | −1 |
 | SAST Bandit — LOW | 56 | 56 | 56 | = |
 | SCA — Jinja2 CVEs | ≥5 | 5 MODERATE | **0** ✅ | −5 |
-| SCA — cryptography CVEs | N/A | 7 (3 HIGH) | **3** (1 HIGH, 2 LOW) | −4 |
-| SCA — vite CVEs (devDep) | 12 | 12 | **6** (2 HIGH dev, 2 MOD, 2 LOW) | −6 |
+| SCA — cryptography CVEs | N/A | 7 (3 HIGH) | **0** ✅ (46.0.7) | −7 |
+| SCA — vite CVEs (devDep) | 12 | 12 | **5** (1 HIGH dev, 2 MOD, 2 LOW) | −7 |
 | ESLint warnings | 0 | 2 | **0** ✅ | −2 |
 | Gitleaks | Sin secretos | Sin secretos | Sin secretos | = |
 | Semgrep SAST | Pasado | Pasado | Pasado | = |
@@ -456,8 +453,8 @@ Esta sección documenta los hallazgos obtenidos mediante dos rondas de escaneo: 
 **Interpretación post-remediación:**
 - Bandit queda completamente limpio en HIGH y MEDIUM.
 - Jinja2 queda sin CVEs conocidos tras actualización a 3.1.6.
-- cryptography redujo de 7 a 3 CVEs; el HIGH residual (SECT curves) no aplica a Fernet.
-- vite redujo de 12 a 6 CVEs; todos residuales son del dev-server, sin impacto en producción nginx.
+- cryptography actualizado 43.0.1→46.0.7: 7 CVEs → **0 CVEs** ✅. Sin breaking changes (solo usa Fernet).
+- vite actualizado 6.2.6→6.3.4: 12 CVEs → **5 CVEs** (−7). GHSA-859w-5945-r5v3 eliminado. Residuales son del dev-server, sin impacto en producción nginx. Fix completo requiere v7/v8 (pendiente evaluación en branch separado).
 - Los controles de aplicación siguen siendo robustos y mejorados respecto a v1.0.
 
 ---
