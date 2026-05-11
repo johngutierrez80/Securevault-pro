@@ -1,7 +1,5 @@
 import jwt
-import json
-import urllib.error
-import urllib.request
+import httpx
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jwt import InvalidTokenError
@@ -12,32 +10,33 @@ security = HTTPBearer()
 
 
 def _validate_session_with_auth_service(token: str) -> dict:
-    request = urllib.request.Request(
-        settings.auth_session_validate_url,
-        headers={"Authorization": f"Bearer {token}"},
-        method="GET",
-    )
-
     try:
-        with urllib.request.urlopen(request, timeout=2) as response:
-            payload = json.loads(response.read().decode("utf-8"))
-            if not payload.get("is_active", False):
-                raise HTTPException(
-                    status_code=status.HTTP_401_UNAUTHORIZED,
-                    detail="Usuario desactivado",
-                )
-            return payload
-    except urllib.error.HTTPError as error:
-        if error.code in {401, 403}:
+        response = httpx.get(
+            settings.auth_session_validate_url,
+            headers={"Authorization": f"Bearer {token}"},
+            timeout=2,
+        )
+        if response.status_code in {401, 403}:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Sesión inválida o revocada",
-            ) from error
+            )
+        response.raise_for_status()
+        payload = response.json()
+        if not payload.get("is_active", False):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Usuario desactivado",
+            )
+        return payload
+    except HTTPException:
+        raise
+    except httpx.HTTPStatusError as error:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="No se pudo validar la sesión",
         ) from error
-    except urllib.error.URLError as error:
+    except httpx.RequestError as error:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="No se pudo validar la sesión",

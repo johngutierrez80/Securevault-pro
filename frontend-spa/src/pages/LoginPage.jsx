@@ -130,6 +130,30 @@ export default function LoginPage() {
 
   // Detectar si hay token de verificación en la URL
   useEffect(() => {
+    async function handleAutoConfirmEmail(emailParam, token) {
+      try {
+        const { ok, data } = await confirmEmail(emailParam, token);
+        if (ok) {
+          setEmailVerificationMessage({ text: data.message, isError: false });
+          setTimeout(() => {
+            setShowEmailVerification(false);
+            setEmail(emailParam);
+            setMsg("Correo verificado. Ahora puedes iniciar sesión.", false);
+          }, 2000);
+        } else {
+          setEmailVerificationMessage({
+            text: data.detail || "No se pudo verificar el correo.",
+            isError: true,
+          });
+        }
+      } catch {
+        setEmailVerificationMessage({
+          text: "Error al verificar el correo.",
+          isError: true,
+        });
+      }
+    }
+
     const token = searchParams.get("token");
     const resetToken = searchParams.get("reset_token");
     const emailParam = searchParams.get("email");
@@ -152,30 +176,6 @@ export default function LoginPage() {
       handleAutoConfirmEmail(emailParam, token);
     }
   }, [searchParams]);
-
-  async function handleAutoConfirmEmail(emailParam, token) {
-    try {
-      const { ok, data } = await confirmEmail(emailParam, token);
-      if (ok) {
-        setEmailVerificationMessage({ text: data.message, isError: false });
-        setTimeout(() => {
-          setShowEmailVerification(false);
-          setEmail(emailParam);
-          setMsg("Correo verificado. Ahora puedes iniciar sesión.", false);
-        }, 2000);
-      } else {
-        setEmailVerificationMessage({
-          text: data.detail || "No se pudo verificar el correo.",
-          isError: true,
-        });
-      }
-    } catch {
-      setEmailVerificationMessage({
-        text: "Error al verificar el correo.",
-        isError: true,
-      });
-    }
-  }
 
   function setMsg(text, isError = true) {
     setMessage({ text, isError });

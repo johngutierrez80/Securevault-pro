@@ -7,7 +7,6 @@ import { clearAuthSession, getAuthToken, getCurrentUser } from "./api/auth";
 
 function ProtectedRoute({ children, requiredRole }) {
   const [status, setStatus] = useState("checking");
-  const [userRole, setUserRole] = useState(null);
 
   useEffect(() => {
     let mounted = true;
@@ -31,8 +30,7 @@ function ProtectedRoute({ children, requiredRole }) {
           } else if (tokenInSession) {
             sessionStorage.setItem("user", JSON.stringify(data));
           }
-          setUserRole(data.role);
-          
+
           // Verificar si el usuario tiene el rol requerido
           if (requiredRole && data.role !== requiredRole) {
             setStatus("forbidden");
