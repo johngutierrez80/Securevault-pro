@@ -15,7 +15,7 @@ RUN npm run build
 FROM nginxinc/nginx-unprivileged:alpine
 
 USER root
-RUN apk upgrade --no-cache nghttp2
+RUN apk upgrade --no-cache nghttp2 curl
 USER nginx
 
 COPY --from=builder /app/dist /usr/share/nginx/html
