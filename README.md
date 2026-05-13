@@ -138,25 +138,33 @@ UPDATE users SET role = 'admin' WHERE email = 'tu_correo@dominio.com';
 ### Flujo de procesamiento de secretos
 
 ```
-Usuario → POST /auth/login → API valida credenciales + emite JWT (60min user / 8h admin)
-                                        ↓
-                  Intento fallido × 3 → Redis bloquea (TTL 5min) + email recovery
-                                        ↓
-                            HTTP 200 OK + token (inmediato)
-                                        ↓
-                    Cliente almacena token en localStorage
-                                        ↓
-          Usuario → GET /vault/secrets/{id} (con Authorization header)
-                                        ↓
-                    Auth Service valida JWT + RBAC
-                                        ↓
-               Vault Service recupera secret cifrado de BD
-                                        ↓
-                  Secret se descifra usando ENCRYPTION_KEY
-                                        ↓
-                        Retorna secret desencriptado
-                                        ↓
-                        Worker registra evento en DB
+## Flujo de Autenticación y Acceso a Secrets
+
+### 1. Login
+- **Usuario** envía `POST /auth/login`
+- La **API** valida credenciales y emite un **JWT**
+  - Usuarios regulares: TTL de **60 minutos**
+  - Administradores: TTL de **8 horas**
+
+> ⚠️ **Intento fallido ×3:** Redis bloquea la cuenta (TTL: 5 min) y envía email de recuperación
+
+- Respuesta exitosa: `HTTP 200 OK` + token (inmediato)
+- El **cliente** almacena el token en `localStorage`
+
+---
+
+### 2. Acceso al Vault
+- **Usuario** envía `GET /vault/secrets/{id}`
+  - Header requerido: `Authorization: Bearer <token>`
+- El **Auth Service** valida el JWT y aplica reglas **RBAC**
+- El **Vault Service** recupera el secret cifrado desde la BD
+- El secret se descifra usando `ENCRYPTION_KEY`
+- Se retorna el **secret desencriptado** al cliente
+
+---
+
+### 3. Auditoría
+- El **Worker** registra el evento de acceso en la BD
 ```
 
 > El API implementa validación de JWT stateless con roles, encriptación de secretos en reposo con clave fija persistente y auditoría asincrónica de todos los accesos.
